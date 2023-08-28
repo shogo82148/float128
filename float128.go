@@ -3,11 +3,14 @@ package float128
 import (
 	"math"
 	"math/bits"
+
+	"github.com/shogo82148/int128"
 )
 
 var nan = Float128{0x7fff_8000_0000_0000, 0x01}
 var inf = Float128{0x7fff_0000_0000_0000, 0x00}
 var neginf = Float128{0xffff_0000_0000_0000, 0x00}
+var one = int128.Uint128{L: 1}
 
 const (
 	mask128      = 0x7fff       // mask for exponent
@@ -101,4 +104,46 @@ func FromFloat64(f float64) Float128 {
 		sign | uint64(exp)<<(shift128-64) | (frac >> (64 - shift128 + shift64)),
 		frac << (shift128 - shift64),
 	}
+}
+
+// Float64 returns the float64 representation of f.
+func (f Float128) Float64() float64 {
+	sign := f.h & signMask128H
+	exp := int((f.h >> (shift128 - 64)) & mask128)
+	frac := int128.Uint128{H: f.h & fracMask128H, L: f.l}
+
+	if exp == mask128 {
+		if frac.H|frac.L != 0 {
+			// f is NaN
+			return math.NaN()
+		} else {
+			// f is ±Inf
+			return math.Float64frombits(sign | (mask64 << shift64))
+		}
+	}
+
+	exp -= bias128
+	if exp <= -bias64 {
+		roundBit := -exp + shift128 - (bias64 + shift64 - 1)
+		frac.H |= 1 << (shift128 - 64)
+		frac = frac.Add(one.Lsh(uint(roundBit - 1)).Sub(one))
+		frac = frac.Add(frac.Rsh(uint(roundBit)).And(one))
+		frac = frac.Rsh(uint(roundBit))
+		return math.Float64frombits(sign | frac.L)
+	}
+
+	// round to nearest, tie to even
+	var carry uint64
+	frac.L, carry = bits.Add64(frac.L, 0x7ff_ffff_ffff_ffff+(frac.L>>(shift128-shift64)&1), 0)
+	frac.H = f.h + carry
+	exp = int((frac.H>>(shift128-64))&mask128) - mask128 + bias64
+	frac.H &= fracMask128H
+
+	if exp >= mask64 {
+		// overflow, the result is ±Inf
+		return math.Float64frombits(sign | (mask64 << shift64))
+	}
+
+	frac = frac.Rsh(shift128 - shift64)
+	return math.Float64frombits(sign | uint64(exp)<<shift64 | frac.L)
 }
