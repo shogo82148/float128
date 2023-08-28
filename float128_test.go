@@ -1,0 +1,40 @@
+package float128
+
+import (
+	"math"
+	"testing"
+)
+
+// negZero is a float64 representation of -0.
+var negZero = math.Float64frombits(1 << 63)
+
+func TestFromFloat64(t *testing.T) {
+	tests := []struct {
+		input float64
+		want  Float128
+	}{
+		{0, Float128{0, 0}},
+		{negZero, Float128{0x8000_0000_0000_0000, 0}},
+		{math.Inf(1), Float128{0x7fff_0000_0000_0000, 0}},
+		{math.Inf(-1), Float128{0xffff_0000_0000_0000, 0}},
+		{math.NaN(), Float128{0x7fff_8000_0000_0000, 0x01}},
+		{1, Float128{0x3fff_0000_0000_0000, 0}},
+		{-2, Float128{0xc000_0000_0000_0000, 0}},
+
+		// small normal numbers of float64
+		{0x1p-1022, Float128{0x3c01_0000_0000_0000, 0}},
+		{math.Nextafter(0x1p-1022, 1), Float128{0x3c01_0000_0000_0000, 0x1000_0000_0000_0000}},
+		{0x1.fffffffffffffp-1022, Float128{0x3c01_ffff_ffff_ffff, 0xf000_0000_0000_0000}},
+
+		// subnormal numbers of float64
+		{0x1p-1023, Float128{0x3c00_0000_0000_0000, 0}},
+		{0x1p-1074, Float128{0x3bcd_0000_0000_0000, 0}},
+	}
+
+	for _, tt := range tests {
+		got := FromFloat64(tt.input)
+		if got != tt.want {
+			t.Errorf("FromFloat64(%x) = {0x%x, 0x%x}, want {0x%x, 0x%x}", tt.input, got.h, got.l, tt.want.h, tt.want.l)
+		}
+	}
+}
