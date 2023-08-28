@@ -29,8 +29,15 @@ type Float128 struct {
 	h, l uint64
 }
 
+// NaN returns a Float128 representation of NaN.
 func NaN() Float128 {
 	return nan
+}
+
+// IsNaN reports whether f is NaN.
+func (f Float128) IsNaN() bool {
+	const expMask = (mask128 << (shift128 - 64))
+	return f.h&expMask == expMask && f.h&fracMask128H != 0 && f.l != 0
 }
 
 // Bits returns the IEEE 754 binary representation of f.

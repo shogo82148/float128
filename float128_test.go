@@ -8,6 +8,23 @@ import (
 // negZero is a float64 representation of -0.
 var negZero = math.Float64frombits(1 << 63)
 
+func TestIsNaN(t *testing.T) {
+	tests := []struct {
+		input Float128
+		want  bool
+	}{
+		{NaN(), true},
+		{Float128{0, 0}, false},
+	}
+
+	for _, tt := range tests {
+		got := tt.input.IsNaN()
+		if got != tt.want {
+			t.Errorf("{%x, %x}.IsNaN() = %v, want %v", tt.input.h, tt.input.l, got, tt.want)
+		}
+	}
+}
+
 func TestFromFloat64(t *testing.T) {
 	tests := []struct {
 		input float64
