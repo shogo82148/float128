@@ -7,6 +7,7 @@ import (
 
 var nan = Float128{0x7fff_8000_0000_0000, 0x01}
 var inf = Float128{0x7fff_0000_0000_0000, 0x00}
+var neginf = Float128{0xffff_0000_0000_0000, 0x00}
 
 const (
 	mask128      = 0x7fff       // mask for exponent
@@ -38,6 +39,23 @@ func NaN() Float128 {
 func (f Float128) IsNaN() bool {
 	const expMask = (mask128 << (shift128 - 64))
 	return f.h&expMask == expMask && f.h&fracMask128H != 0 && f.l != 0
+}
+
+// Inf returns positive infinity if sign >= 0, negative infinity if sign < 0.
+func Inf(sign int) Float128 {
+	if sign >= 0 {
+		return inf
+	} else {
+		return neginf
+	}
+}
+
+// IsInf reports whether f is an infinity, according to sign.
+// If sign > 0, IsInf reports whether f is positive infinity.
+// If sign < 0, IsInf reports whether f is negative infinity.
+// If sign == 0, IsInf reports whether f is either infinity.
+func (f Float128) IsInf(sign int) bool {
+	return sign >= 0 && f == inf || sign <= 0 && f == neginf
 }
 
 // Bits returns the IEEE 754 binary representation of f.
