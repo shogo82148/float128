@@ -59,6 +59,44 @@ func (a Float128) Mul(b Float128) Float128 {
 
 	sign := signA ^ signB
 
+	// handle special cases
+	if expA == mask128-bias128 {
+		fracA := a.h&fracMask128H | a.l
+		if fracA == 0 {
+			// a is ±Inf
+			fracB := b.h&fracMask128H | b.l
+			if expB == mask128-bias128 && fracB != 0 {
+				// b is NaN, the result is NaN
+				return b
+			} else if expB == -bias128 && fracB == 0 {
+				// b is ±0, the result is NaN
+				return nan
+			} else {
+				// b is finite, the result is ±Inf
+				return Float128{sign | inf.h, inf.l}
+			}
+		} else {
+			// a is NaN
+			return a
+		}
+	}
+	if expB == mask128-bias128 {
+		fracB := b.h&fracMask128H | b.l
+		if fracB == 0 {
+			// b is ±Inf
+			if a.isZero() {
+				// a is ±0, the result is NaN
+				return nan
+			} else {
+				// a is finite, the result is ±Inf
+				return Float128{sign | inf.h, inf.l}
+			}
+		} else {
+			// b is NaN
+			return b
+		}
+	}
+
 	var fracA int128.Uint128
 	if expA == -bias128 {
 		fracA = int128.Uint128{H: a.h & fracMask128H, L: a.l}
@@ -110,4 +148,8 @@ func (a Float128) Mul(b Float128) Float128 {
 	frac = frac.Rsh(uint(shift) + 2)
 	exp += bias128
 	return Float128{sign | uint64(exp<<(shift128-64)) | (frac.H & fracMask128H), frac.L}
+}
+
+func (f Float128) isZero() bool {
+	return (f.h&^signMask128H | f.l) == 0
 }
