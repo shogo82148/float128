@@ -41,6 +41,12 @@ func TestMul(t *testing.T) {
 			Float128{0x3ffe_8000_0000_0000, 0x0000_0000_0000_0000}, // 0.75
 			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001},
 		},
+		{
+			// overflow
+			Float128{0x7ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest normal number
+			Float128{0x3fff_8000_0000_0000, 0x0000_0000_0000_0000}, // 1.5
+			Float128{0x7fff_0000_0000_0000, 0x0000_0000_0000_0000}, // +Inf
+		},
 	}
 
 	for _, tt := range tests {
