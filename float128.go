@@ -1,6 +1,7 @@
 package float128
 
 import (
+	"fmt"
 	"math"
 	"math/bits"
 
@@ -146,4 +147,30 @@ func (f Float128) Float64() float64 {
 
 	frac = frac.Rsh(shift128 - shift64)
 	return math.Float64frombits(sign | uint64(exp)<<shift64 | frac.L)
+}
+
+func (f Float128) GoString() string {
+	sign := f.h & signMask128H
+	c := '+'
+	if sign != 0 {
+		c = '-'
+	}
+	exp := int((f.h >> (shift128 - 64)) & mask128)
+	frac := int128.Uint128{H: f.h & fracMask128H, L: f.l}
+
+	if exp == mask128 {
+		if frac.H|frac.L != 0 {
+			// f is NaN
+			return "NaN"
+		} else {
+			// f is ±Inf
+			return fmt.Sprintf("%cInf", c)
+		}
+	} else if exp == 0 {
+		if frac.H|frac.L == 0 {
+			return fmt.Sprintf("%c0x0.0000000000000000000000000000p+0", c)
+		}
+		return fmt.Sprintf("%c0x0.%012x%016xp%+d", c, frac.H, frac.L, -bias128)
+	}
+	return fmt.Sprintf("%c0x1.%012x%016xp%+d", c, frac.H, frac.L, exp-bias128)
 }

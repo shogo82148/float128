@@ -118,3 +118,25 @@ func TestFloat64(t *testing.T) {
 		}
 	}
 }
+
+func TestGoString(t *testing.T) {
+	tests := []struct {
+		input Float128
+		want  string
+	}{
+		{Float128{0x7fff_0000_0000_0000, 0}, "+Inf"},
+		{Float128{0xffff_0000_0000_0000, 0}, "-Inf"},
+		{Float128{0x7fff_8000_0000_0000, 0x01}, "NaN"},
+		{Float128{0x3fff_0000_0000_0000, 0}, "+0x1.0000000000000000000000000000p+0"},
+		{Float128{0xc000_0000_0000_0000, 0}, "-0x1.0000000000000000000000000000p+1"},
+		{Float128{0x3c01_0000_0000_0000, 0}, "+0x1.0000000000000000000000000000p-1022"},
+		{Float128{0, 1}, "+0x0.0000000000000000000000000001p-16383"},
+		{Float128{0, 0}, "+0x0.0000000000000000000000000000p+0"},
+	}
+	for _, tt := range tests {
+		got := tt.input.GoString()
+		if got != tt.want {
+			t.Errorf("{%x, %x}.GoString() = %v, want %v", tt.input.h, tt.input.l, got, tt.want)
+		}
+	}
+}
