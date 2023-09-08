@@ -86,9 +86,15 @@ func (a Float128) Mul(b Float128) Float128 {
 	frac := int128.Uint128{H: frac256.a, L: frac256.b | squash(frac256.c) | squash(frac256.d)}
 	shift := frac.Len() - (shift128 + 1 + 2)
 	exp += shift
-	if exp < -bias128 {
+	if exp < -(bias128 + shift128) {
 		// underflow
 		return Float128{sign, 0}
+	} else if exp <= -bias128 {
+		// the result is subnormal
+		shift = 1 - (expA + expB + bias128)
+		frac = frac.Add(int128.Uint128{H: 0, L: (1<<(shift+1) - 1) + (frac.L>>(shift+2))&1}) // round to nearest even
+		frac = frac.Rsh(uint(shift) + 2)
+		return Float128{sign | (frac.H & fracMask128H), frac.L}
 	}
 
 	frac = frac.Add(int128.Uint128{H: 0, L: (1<<(shift+1) - 1) + (frac.L>>(shift+2))&1}) // round to nearest even

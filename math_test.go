@@ -21,6 +21,12 @@ func TestMul(t *testing.T) {
 			Float128{0x3fff_8000_0000_0000, 0},
 			Float128{0x4000_2000_0000_0000, 0},
 		},
+		{
+			// 2⁻¹⁶³⁸² * 2⁻¹ = 2⁻¹⁶³⁸³
+			Float128{0x0001_0000_0000_0000, 0}, // smallest positive normal number
+			Float128{0x3ffe_0000_0000_0000, 0}, // 0.5
+			Float128{0x0000_8000_0000_0000, 0}, // 2⁻¹⁶³⁸³
+		},
 	}
 
 	for _, tt := range tests {

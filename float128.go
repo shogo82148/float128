@@ -170,7 +170,7 @@ func (f Float128) GoString() string {
 		if frac.H|frac.L == 0 {
 			return fmt.Sprintf("%c0x0.0000000000000000000000000000p+0", c)
 		}
-		return fmt.Sprintf("%c0x0.%012x%016xp%+d", c, frac.H, frac.L, -bias128)
+		return fmt.Sprintf("%c0x0.%012x%016xp%+d", c, frac.H, frac.L, -bias128+1)
 	}
 	return fmt.Sprintf("%c0x1.%012x%016xp%+d", c, frac.H, frac.L, exp-bias128)
 }
