@@ -1,0 +1,28 @@
+name: test
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go:
+          - "1.21"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go }}
+      - run: |
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            go test -coverprofile="coverage.txt" -timeout 1h -v ./...
+          else
+            go test -coverprofile="coverage.txt" -timeout 10m -short -v ./...
+          fi
+      - name: upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.txt
+          flags: ${{ matrix.go }}
