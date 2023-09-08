@@ -92,7 +92,9 @@ func (a Float128) Mul(b Float128) Float128 {
 	} else if exp <= -bias128 {
 		// the result is subnormal
 		shift = 1 - (expA + expB + bias128)
-		frac = frac.Add(int128.Uint128{H: 0, L: (1<<(shift+1) - 1) + (frac.L>>(shift+2))&1}) // round to nearest even
+		one := int128.Uint128{H: 0, L: 1}
+		offset := one.Lsh(uint(shift) + 1).Sub(one).Add(frac.Rsh(uint(shift) + 2).And(one))
+		frac = frac.Add(offset) // round to nearest even
 		frac = frac.Rsh(uint(shift) + 2)
 		return Float128{sign | (frac.H & fracMask128H), frac.L}
 	}
