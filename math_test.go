@@ -149,12 +149,12 @@ func TestAdd(t *testing.T) {
 			Float128{0x3fff_0000_0000_0000, 0},
 			Float128{0x4000_0000_0000_0000, 0},
 		},
-		// {
-		// 	// (-1) + (-1) = (-2)
-		// 	Float128{0xbfff_0000_0000_0000, 0},
-		// 	Float128{0xbfff_0000_0000_0000, 0},
-		// 	Float128{0xc000_0000_0000_0000, 0},
-		// },
+		{
+			// (-1) + (-1) = (-2)
+			Float128{0xbfff_0000_0000_0000, 0},
+			Float128{0xbfff_0000_0000_0000, 0},
+			Float128{0xc000_0000_0000_0000, 0},
+		},
 		{
 			// 1 + 2 = 3
 			Float128{0x3fff_0000_0000_0000, 0},
@@ -220,38 +220,38 @@ func TestAdd(t *testing.T) {
 		// 	Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0002},
 		// },
 
-		// // positive normal number + negative normal number => normal number
-		// {
-		// 	// 1 + (-0.5) = 0.5
-		// 	Float128{0x3fff_0000_0000_0000, 0},
-		// 	Float128{0xbffe_0000_0000_0000, 0},
-		// 	Float128{0x3ffe_0000_0000_0000, 0},
-		// },
-		// {
-		// 	// (-0.5) + 1 = 0.5
-		// 	Float128{0xbffe_0000_0000_0000, 0},
-		// 	Float128{0x3fff_0000_0000_0000, 0},
-		// 	Float128{0x3ffe_0000_0000_0000, 0},
-		// },
-		// {
-		// 	// 1 + (-2⁻¹¹³)
-		// 	Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
-		// 	Float128{0xbf8e_0000_0000_0000, 0x0000_0000_0000_0000},
-		// 	Float128{0x3ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest number less than one
-		// },
-		// {
-		// 	// (-2⁻¹¹³) + 1
-		// 	Float128{0xbf8e_0000_0000_0000, 0x0000_0000_0000_0000},
-		// 	Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
-		// 	Float128{0x3ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest number less than one
-		// },
+		// positive normal number + negative normal number => normal number
+		{
+			// 1 + (-0.5) = 0.5
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0xbffe_0000_0000_0000, 0},
+			Float128{0x3ffe_0000_0000_0000, 0},
+		},
+		{
+			// (-0.5) + 1 = 0.5
+			Float128{0xbffe_0000_0000_0000, 0},
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x3ffe_0000_0000_0000, 0},
+		},
+		{
+			// 1 + (-2⁻¹¹³)
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0xbf8e_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest number less than one
+		},
+		{
+			// (-2⁻¹¹³) + 1
+			Float128{0xbf8e_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest number less than one
+		},
 
-		// // 0 + anything => anything
-		// {
-		// 	Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0000},
-		// 	Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000}, // 1
-		// 	Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000}, // 1
-		// },
+		// 0 + anything => anything
+		{
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000}, // 1
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000}, // 1
+		},
 	}
 
 	for _, tt := range tests {

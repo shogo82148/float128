@@ -154,10 +154,8 @@ func (a Float128) Add(b Float128) Float128 {
 	signA, expA, fracA := a.split()
 	signB, expB, fracB := b.split()
 
-	_ = signA
-	_ = signB
-
 	if expA < expB {
+		signA, signB = signB, signA
 		expA, expB = expB, expA
 		fracA, fracB = fracB, fracA
 	}
@@ -169,7 +167,22 @@ func (a Float128) Add(b Float128) Float128 {
 
 	fracB = fracB.Add(one.Lsh(uint(expA - expB)).Sub(one))
 	fracB = fracB.Rsh(uint(expA - expB))
-	frac := fracA.Add(fracB)
+
+	ifracA := fracA.Int128()
+	if signA != 0 {
+		ifracA = ifracA.Neg()
+	}
+	ifracB := fracB.Int128()
+	if signB != 0 {
+		ifracB = ifracB.Neg()
+	}
+	ifrac := ifracA.Add(ifracB)
+
+	sign := uint64(ifrac.H) & signMask128H
+	if sign != 0 {
+		ifrac = ifrac.Neg()
+	}
+	frac := ifrac.Uint128()
 
 	var shift int32
 	shift = int32(frac.Len()) - (shift128 + 1 + 2)
@@ -178,7 +191,7 @@ func (a Float128) Add(b Float128) Float128 {
 	exp += shift
 
 	exp += bias128
-	return Float128{uint64(exp)<<(shift128-64) | (frac.H & fracMask128H), frac.L}
+	return Float128{sign | uint64(exp)<<(shift128-64) | (frac.H & fracMask128H), frac.L}
 }
 
 func (a Float128) Sub(b Float128) Float128 {
