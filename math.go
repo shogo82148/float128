@@ -211,6 +211,14 @@ func add(sign uint64, expA, expB int, a, b Float128) Float128 {
 		// overflow
 		return Float128{sign | inf.h, inf.l}
 	}
+	if exp <= -bias128 {
+		// the result is subnormal
+		shift = -(exp + bias128) - 1
+		offset := one.Lsh(uint(shift) + 1).Sub(one).Add(frac.Rsh(uint(shift) + 2).And(one))
+		frac = frac.Add(offset) // round to nearest even
+		frac = frac.Rsh(uint(shift) + 2)
+		return Float128{sign | (frac.H & fracMask128H), frac.L}
+	}
 
 	exp += bias128
 	return Float128{sign | uint64(exp<<(shift128-64)) | (frac.H & fracMask128H), frac.L}
