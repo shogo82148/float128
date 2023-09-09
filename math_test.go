@@ -95,3 +95,30 @@ func TestMul(t *testing.T) {
 		}
 	}
 }
+
+func TestAdd(t *testing.T) {
+	tests := []struct {
+		a, b Float128
+		want Float128
+	}{
+		{
+			// 1 + 1 = 2
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x4000_0000_0000_0000, 0},
+		},
+		{
+			// 1 + 2 = 3
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x4000_0000_0000_0000, 0},
+			Float128{0x4000_8000_0000_0000, 0},
+		},
+	}
+
+	for _, tt := range tests {
+		got := tt.a.Add(tt.b)
+		if got != tt.want {
+			t.Errorf("%#v + %#v: got %#v, want %#v", tt.a, tt.b, got, tt.want)
+		}
+	}
+}

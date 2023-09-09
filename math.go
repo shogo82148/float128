@@ -41,6 +41,14 @@ func mul128(x, y int128.Uint128) uint256 {
 	return uint256{a, b, c, d}
 }
 
+func (x uint256) Add(y uint256) uint256 {
+	d, carry := bits.Add64(x.d, y.d, 0)
+	c, carry := bits.Add64(x.c, y.c, carry)
+	b, carry := bits.Add64(x.b, y.b, carry)
+	a, _ := bits.Add64(x.a, y.a, carry)
+	return uint256{a, b, c, d}
+}
+
 func squash(x uint64) uint64 {
 	x |= x >> 32
 	x |= x >> 16
@@ -152,4 +160,29 @@ func (a Float128) Mul(b Float128) Float128 {
 
 func (f Float128) isZero() bool {
 	return (f.h&^signMask128H | f.l) == 0
+}
+
+func (a Float128) Add(b Float128) Float128 {
+	signA := a.h & signMask128H
+	expA := int((a.h>>(shift128-64))&mask128) - bias128
+	signB := b.h & signMask128H
+	expB := int((b.h>>(shift128-64))&mask128) - bias128
+
+	if expA <= expB {
+		expA, expB = expB, expA
+		signA, signB = signB, signA
+		a, b = b, a
+	}
+
+	fracA := int128.Uint128{H: a.h&fracMask128H | (1 << (shift128 - 64)), L: a.l}
+	fracB := int128.Uint128{H: b.h&fracMask128H | (1 << (shift128 - 64)), L: b.l}
+	frac := fracA.Add(fracB.Rsh(uint(expA - expB)))
+	exp := expA
+
+	shift := frac.Len() - (shift128 + 1)
+	frac = frac.Rsh(uint(shift))
+	exp += shift
+
+	exp += bias128
+	return Float128{uint64(exp<<(shift128-64)) | (frac.H & fracMask128H), frac.L}
 }
