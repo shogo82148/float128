@@ -96,6 +96,29 @@ func TestMul(t *testing.T) {
 	}
 }
 
+//go:generate sh -c "perl scripts/f128_mul.pl | gofmt > f128_mul_test.go"
+
+func TestMul_TestFloat(t *testing.T) {
+	for _, tt := range f128Mul {
+		tt := tt
+		fa := tt.a
+		fb := tt.b
+		func() {
+			defer func() {
+				err := recover()
+				if err != nil {
+					t.Errorf("%#v * %#v: want %#v, panic! %v", fa, fb, tt.want, err)
+				}
+			}()
+			got := fa.Add(fb)
+			if got != tt.want {
+				t.Errorf("%#v (%016x_%016x) * %#v (%016x_%016x): got %#v (%016x_%016x), want %#v (%016x_%016x)",
+					fa, fa.h, fa.l, fb, fb.h, fb.l, got, got.h, got.l, tt.want, tt.want.h, tt.want.l)
+			}
+		}()
+	}
+}
+
 func TestAdd(t *testing.T) {
 	tests := []struct {
 		a, b Float128
