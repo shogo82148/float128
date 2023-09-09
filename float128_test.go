@@ -131,6 +131,18 @@ func TestFloat64(t *testing.T) {
 	}
 }
 
+//go:generate sh -c "perl scripts/f128_to_f64.pl | gofmt > f128_to_f64_test.go"
+
+func TestFloat64_TestFloat(t *testing.T) {
+	for _, tt := range f128ToF64 {
+		f64 := tt.f128.Float64()
+		got := math.Float64bits(f64)
+		if got != tt.f64 {
+			t.Errorf("{0x%x, 0x%x}.Float64() = %x, want %x", tt.f128.h, tt.f128.l, got, tt.f64)
+		}
+	}
+}
+
 func TestGoString(t *testing.T) {
 	tests := []struct {
 		input Float128
