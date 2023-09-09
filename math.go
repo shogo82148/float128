@@ -156,10 +156,7 @@ func (a Float128) Add(b Float128) Float128 {
 
 	_ = signA
 	_ = signB
-	return add(expA, expB, fracA, fracB)
-}
 
-func add(expA, expB int32, fracA, fracB int128.Uint128) Float128 {
 	if expA < expB {
 		expA, expB = expB, expA
 		fracA, fracB = fracB, fracA
@@ -170,12 +167,13 @@ func add(expA, expB int32, fracA, fracB int128.Uint128) Float128 {
 	fracA = fracA.Lsh(2)
 	fracB = fracB.Lsh(2)
 
-	// fracB = fracB.Add(one.Lsh(uint(expA - expB)).Sub(one))
+	fracB = fracB.Add(one.Lsh(uint(expA - expB)).Sub(one))
 	fracB = fracB.Rsh(uint(expA - expB))
 	frac := fracA.Add(fracB)
 
 	var shift int32
 	shift = int32(frac.Len()) - (shift128 + 1 + 2)
+	frac = frac.Add(int128.Uint128{H: 0, L: (1<<(shift+1) - 1) + (frac.L>>(shift+2))&1}) // round to nearest even
 	frac = frac.Rsh(uint(shift) + 2)
 	exp += shift
 
