@@ -181,20 +181,28 @@ func NaN() Float128 {
 
 // IsNaN reports whether f is NaN.
 func (f Float128) IsNaN() bool {
-	const expMask = (mask128 << (shift128 - 64))
-	return f.h&expMask == expMask && f.h&fracMask128H != 0 && f.l != 0
+	exp := (f.h >> (shift128 - 64)) & mask128
+	if exp != mask128 {
+		return false
+	}
+	if (f.h&fracMask128H | f.l) == 0 {
+		return false
+	}
+	return true
 }
 
 func (f Float128) isSignalingNaN() bool {
-	const expMask = (mask128 << (shift128 - 64))
-	return f.h&expMask == expMask && f.h&fracMask128H != 0 && f.l != 0 && f.h&qNaNBitH == 0
+	exp := (f.h >> (shift128 - 64)) & mask128
+	if exp != mask128 {
+		return false
+	}
+	if (f.h&fracMask128H | f.l) == 0 {
+		return false
+	}
+	return f.h&qNaNBitH == 0
 }
 
-func (f Float128) isQuietNaN() bool {
-	const expMask = (mask128 << (shift128 - 64))
-	return f.h&expMask == expMask && f.h&fracMask128H != 0 && f.l != 0 && f.h&qNaNBitH != 0
-}
-
+// a or b must be NaN.
 func propagateNaN(a, b Float128) Float128 {
 	if a.isSignalingNaN() {
 		return Float128{a.h | qNaNBitH, a.l}
@@ -202,11 +210,8 @@ func propagateNaN(a, b Float128) Float128 {
 	if b.isSignalingNaN() {
 		return Float128{b.h | qNaNBitH, b.l}
 	}
-	if a.isQuietNaN() {
+	if a.IsNaN() {
 		return a
 	}
-	if b.isQuietNaN() {
-		return b
-	}
-	panic("never reach here")
+	return b
 }

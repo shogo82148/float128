@@ -1,8 +1,13 @@
 package float128
 
 import (
+	"fmt"
 	"testing"
 )
+
+func dump(f Float128) string {
+	return fmt.Sprintf("%#v (%016x_%016x)", f, f.h, f.l)
+}
 
 func TestMul(t *testing.T) {
 	tests := []struct {
@@ -53,12 +58,12 @@ func TestMul(t *testing.T) {
 		{
 			Float128{0x7fff_0000_0000_0000, 0x0000_0000_0000_0000}, // +Inf
 			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0000}, // 0
-			Float128{0x7fff_8000_0000_0000, 0x0000_0000_0000_0001}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x0000_0000_0000_0000}, // NaN
 		},
 		{
 			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0000}, // 0
 			Float128{0x7fff_0000_0000_0000, 0x0000_0000_0000_0000}, // +Inf
-			Float128{0x7fff_8000_0000_0000, 0x0000_0000_0000_0001}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x0000_0000_0000_0000}, // NaN
 		},
 
 		// Infinity * anything => Infinity
@@ -91,7 +96,7 @@ func TestMul(t *testing.T) {
 	for _, tt := range tests {
 		got := tt.a.Mul(tt.b)
 		if got != tt.want {
-			t.Errorf("%#v * %#v: got %#v, want %#v", tt.a, tt.b, got, tt.want)
+			t.Errorf("%s * %s: got %s, want %s", dump(tt.a), dump(tt.b), dump(got), dump(tt.want))
 		}
 	}
 }
@@ -110,7 +115,7 @@ func TestMul_TestFloat(t *testing.T) {
 					t.Errorf("%#v * %#v: want %#v, panic! %v", fa, fb, tt.want, err)
 				}
 			}()
-			got := fa.Add(fb)
+			got := fa.Mul(fb)
 			if got != tt.want {
 				t.Errorf("%#v (%016x_%016x) * %#v (%016x_%016x): got %#v (%016x_%016x), want %#v (%016x_%016x)",
 					fa, fa.h, fa.l, fb, fb.h, fb.l, got, got.h, got.l, tt.want, tt.want.h, tt.want.l)

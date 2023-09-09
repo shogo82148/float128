@@ -42,87 +42,66 @@ func mul128(x, y int128.Uint128) uint256 {
 }
 
 func squash(x uint64) uint64 {
-	x |= x >> 32
-	x |= x >> 16
-	x |= x >> 8
-	x |= x >> 4
-	x |= x >> 2
-	x |= x >> 1
-	return x & 1
+	if x == 0 {
+		return 0
+	}
+	return 1
+}
+
+func (f Float128) split() (sign uint64, exp int32, frac int128.Uint128) {
+	sign = f.h & signMask128H
+	exp = int32((f.h>>(shift128-64))&mask128) - bias128
+	if exp == -bias128 {
+		frac = int128.Uint128{H: f.h & fracMask128H, L: f.l}
+		l := frac.Len()
+		frac = frac.Lsh(uint(shift128-l) + 1)
+		exp = int32(l) - (bias128 + shift128)
+	} else {
+		frac = int128.Uint128{H: (f.h & fracMask128H) | (1 << (shift128 - 64)), L: f.l}
+	}
+	return
 }
 
 func (a Float128) Mul(b Float128) Float128 {
-	signA := a.h & signMask128H
-	expA := int((a.h>>(shift128-64))&mask128) - bias128
-	signB := b.h & signMask128H
-	expB := int((b.h>>(shift128-64))&mask128) - bias128
+	if a.IsNaN() || b.IsNaN() {
+		return propagateNaN(a, b)
+	}
+
+	signA, expA, fracA := a.split()
+	signB, expB, fracB := b.split()
 
 	sign := signA ^ signB
 
 	// handle special cases
 	if expA == mask128-bias128 {
-		fracA := a.h&fracMask128H | a.l
-		if fracA == 0 {
-			// a is ±Inf
-			fracB := b.h&fracMask128H | b.l
-			if expB == mask128-bias128 && fracB != 0 {
-				// b is NaN, the result is NaN
-				return b
-			} else if expB == -bias128 && fracB == 0 {
-				// b is ±0, the result is NaN
-				return nan
-			} else {
-				// b is finite, the result is ±Inf
-				return Float128{sign | inf.h, inf.l}
-			}
+		// NaN check is done above; a is ±Inf
+		if b.isZero() {
+			// ±Inf * ±0 = NaN
+			return nan
 		} else {
-			// a is NaN
-			return a
+			// b is finite, the result is ±Inf
+			return Float128{sign | inf.h, inf.l}
 		}
 	}
 	if expB == mask128-bias128 {
-		fracB := b.h&fracMask128H | b.l
-		if fracB == 0 {
-			// b is ±Inf
-			if a.isZero() {
-				// a is ±0, the result is NaN
-				return nan
-			} else {
-				// a is finite, the result is ±Inf
-				return Float128{sign | inf.h, inf.l}
-			}
+		// NaN check is done above; b is ±Inf
+		if a.isZero() {
+			// ±0 * ±Inf = NaN
+			return nan
 		} else {
-			// b is NaN
-			return b
+			// a is finite, the result is ±Inf
+			return Float128{sign | inf.h, inf.l}
 		}
 	}
 
-	var fracA int128.Uint128
-	if expA == -bias128 {
-		fracA = int128.Uint128{H: a.h & fracMask128H, L: a.l}
-		l := fracA.Len()
-		fracA = fracA.Lsh(uint(shift128-l) + 1)
-		expA = l - (bias128 + shift128)
-	} else {
-		fracA = int128.Uint128{H: (a.h & fracMask128H) | (1 << (shift128 - 64)), L: a.l}
-	}
-	fracA = fracA.Lsh(9) // add guard and round bits
-
-	var fracB int128.Uint128
-	if expB == -bias128 {
-		fracB = int128.Uint128{H: b.h & fracMask128H, L: b.l}
-		l := fracB.Len()
-		fracB = fracB.Lsh(uint(shift128-l) + 1)
-		expB = l - (bias128 + shift128)
-	} else {
-		fracB = int128.Uint128{H: (b.h & fracMask128H) | (1 << (shift128 - 64)), L: b.l}
-	}
-	fracB = fracB.Lsh(9) // add guard and round bits
+	// add guard and round bits
+	fracA = fracA.Lsh(9)
+	fracB = fracB.Lsh(9)
 
 	exp := expA + expB
 	frac256 := mul128(fracA, fracB)
 	frac := int128.Uint128{H: frac256.a, L: frac256.b | squash(frac256.c) | squash(frac256.d)}
-	shift := frac.Len() - (shift128 + 1 + 2)
+	shift := int32(frac.Len()) - (shift128 + 1 + 2)
 	exp += shift
 	if exp < -(bias128 + shift128) {
 		// underflow
@@ -137,7 +116,7 @@ func (a Float128) Mul(b Float128) Float128 {
 	}
 
 	frac = frac.Add(int128.Uint128{H: 0, L: (1<<(shift+1) - 1) + (frac.L>>(shift+2))&1}) // round to nearest even
-	shift = frac.Len() - (shift128 + 1 + 2)
+	shift = int32(frac.Len()) - (shift128 + 1 + 2)
 	exp = expA + expB + shift
 
 	if exp >= mask128-bias128 {
@@ -147,7 +126,7 @@ func (a Float128) Mul(b Float128) Float128 {
 
 	frac = frac.Rsh(uint(shift) + 2)
 	exp += bias128
-	return Float128{sign | uint64(exp<<(shift128-64)) | (frac.H & fracMask128H), frac.L}
+	return Float128{sign | uint64(exp)<<(shift128-64) | (frac.H & fracMask128H), frac.L}
 }
 
 func (f Float128) isZero() bool {

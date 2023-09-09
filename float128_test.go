@@ -6,24 +6,7 @@ import (
 )
 
 // negZero is a float64 representation of -0.
-var negZero = math.Float64frombits(1 << 63)
-
-func TestIsNaN(t *testing.T) {
-	tests := []struct {
-		input Float128
-		want  bool
-	}{
-		{NaN(), true},
-		{Float128{0, 0}, false},
-	}
-
-	for _, tt := range tests {
-		got := tt.input.IsNaN()
-		if got != tt.want {
-			t.Errorf("{%x, %x}.IsNaN() = %v, want %v", tt.input.h, tt.input.l, got, tt.want)
-		}
-	}
-}
+var negZero = math.Copysign(0, 1)
 
 func TestIsInf(t *testing.T) {
 	tests := []struct {
@@ -168,5 +151,38 @@ func TestGoString(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("{%x, %x}.GoString() = %v, want %v", tt.input.h, tt.input.l, got, tt.want)
 		}
+	}
+}
+
+func TestIsNaN(t *testing.T) {
+	tests := []struct {
+		input Float128
+		want  bool
+	}{
+		// examples of NaN
+		{NaN(), true},
+		{Float128{0xffffffffffffffff, 0xfffffffffffffffe}, true},
+		{Float128{0xffff000000000000, 0x0000000000000001}, true},
+
+		{Float128{0, 0}, false},
+	}
+
+	for _, tt := range tests {
+		got := tt.input.IsNaN()
+		if got != tt.want {
+			t.Errorf("{%x, %x}.IsNaN() = %v, want %v", tt.input.h, tt.input.l, got, tt.want)
+		}
+	}
+}
+
+func TestIsSignalingNaN(t *testing.T) {
+	nan1 := Float128{0xffffffffffffffff, 0xfffffffffffffffe}
+	if nan1.isSignalingNaN() {
+		t.Errorf("isSignalingNaN(%s) = true, want false", dump(nan1))
+	}
+
+	nan2 := Float128{0xffff000000000000, 0x0000000000000001}
+	if !nan2.isSignalingNaN() {
+		t.Errorf("isSignalingNaN(%s) = false, want true", dump(nan2))
 	}
 }
