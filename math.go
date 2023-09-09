@@ -155,6 +155,18 @@ func (f Float128) isZero() bool {
 }
 
 func (a Float128) Add(b Float128) Float128 {
+	if a.IsNaN() || b.IsNaN() {
+		return propagateNaN(a, b)
+	}
+	if ((a.h &^ signMask128H) | a.l) == 0 {
+		// ±0 + b = b
+		return b
+	}
+	if ((b.h &^ signMask128H) | b.l) == 0 {
+		// a + ±0 = a
+		return a
+	}
+
 	signA := a.h & signMask128H
 	expA := int((a.h>>(shift128-64))&mask128) - bias128
 	signB := b.h & signMask128H

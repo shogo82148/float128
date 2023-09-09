@@ -8,7 +8,7 @@ import (
 	"github.com/shogo82148/int128"
 )
 
-var nan = Float128{0x7fff_8000_0000_0000, 0x01}
+var nan = Float128{0x7fff_8000_0000_0000, 0x00}
 var inf = Float128{0x7fff_0000_0000_0000, 0x00}
 var neginf = Float128{0xffff_0000_0000_0000, 0x00}
 var one = int128.Uint128{L: 1}
@@ -19,6 +19,7 @@ const (
 	bias128      = 16383        // bias for exponent
 	signMask128H = 1 << 63      // mask for sign bit
 	fracMask128H = 1<<(shift128-64) - 1
+	qNaNBitH     = (1 << (shift128 - 64 - 1))
 )
 
 const (
@@ -32,17 +33,6 @@ const (
 // Float128 represents a 128-bit floating point number.
 type Float128 struct {
 	h, l uint64
-}
-
-// NaN returns a Float128 representation of NaN.
-func NaN() Float128 {
-	return nan
-}
-
-// IsNaN reports whether f is NaN.
-func (f Float128) IsNaN() bool {
-	const expMask = (mask128 << (shift128 - 64))
-	return f.h&expMask == expMask && f.h&fracMask128H != 0 && f.l != 0
 }
 
 // Inf returns positive infinity if sign >= 0, negative infinity if sign < 0.
@@ -173,4 +163,41 @@ func (f Float128) GoString() string {
 		return fmt.Sprintf("%c0x0.%012x%016xp%+d", c, frac.H, frac.L, -bias128+1)
 	}
 	return fmt.Sprintf("%c0x1.%012x%016xp%+d", c, frac.H, frac.L, exp-bias128)
+}
+
+// NaN returns a Float128 representation of NaN.
+func NaN() Float128 {
+	return nan
+}
+
+// IsNaN reports whether f is NaN.
+func (f Float128) IsNaN() bool {
+	const expMask = (mask128 << (shift128 - 64))
+	return f.h&expMask == expMask && f.h&fracMask128H != 0 && f.l != 0
+}
+
+func (f Float128) isSignalingNaN() bool {
+	const expMask = (mask128 << (shift128 - 64))
+	return f.h&expMask == expMask && f.h&fracMask128H != 0 && f.l != 0 && f.h&qNaNBitH == 0
+}
+
+func (f Float128) isQuietNaN() bool {
+	const expMask = (mask128 << (shift128 - 64))
+	return f.h&expMask == expMask && f.h&fracMask128H != 0 && f.l != 0 && f.h&qNaNBitH != 0
+}
+
+func propagateNaN(a, b Float128) Float128 {
+	if a.isSignalingNaN() {
+		return Float128{a.h | qNaNBitH, a.l}
+	}
+	if b.isSignalingNaN() {
+		return Float128{b.h | qNaNBitH, b.l}
+	}
+	if a.isQuietNaN() {
+		return a
+	}
+	if b.isQuietNaN() {
+		return b
+	}
+	panic("never reach here")
 }

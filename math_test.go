@@ -218,11 +218,21 @@ func TestAdd(t *testing.T) {
 
 func TestAdd_TestFloat(t *testing.T) {
 	for _, tt := range f128Add {
+		tt := tt
 		fa := tt.a
 		fb := tt.b
-		got := fa.Add(fb)
-		if got != tt.want {
-			t.Errorf("%#v + %#v: got %#v, want %#v", fa, fb, got, tt.want)
-		}
+		func() {
+			defer func() {
+				err := recover()
+				if err != nil {
+					t.Errorf("%#v + %#v: want %#v, panic! %v", fa, fb, tt.want, err)
+				}
+			}()
+			got := fa.Add(fb)
+			if got != tt.want {
+				t.Errorf("%#v (%016x_%016x) + %#v (%016x_%016x): got %#v (%016x_%016x), want %#v (%016x_%016x)",
+					fa, fa.h, fa.l, fb, fb.h, fb.l, got, got.h, got.l, tt.want, tt.want.h, tt.want.l)
+			}
+		}()
 	}
 }
