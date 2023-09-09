@@ -186,6 +186,24 @@ func TestAdd(t *testing.T) {
 			Float128{0xbffe_0000_0000_0000, 0},
 			Float128{0x3ffe_0000_0000_0000, 0},
 		},
+		{
+			// (-0.5) + 1 = 0.5
+			Float128{0xbffe_0000_0000_0000, 0},
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x3ffe_0000_0000_0000, 0},
+		},
+		{
+			// 1 + (-2⁻¹¹³)
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0xbf8e_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest number less than one
+		},
+		{
+			// (-2⁻¹¹³) + 1
+			Float128{0xbf8e_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest number less than one
+		},
 	}
 
 	for _, tt := range tests {
