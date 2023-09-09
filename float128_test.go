@@ -6,24 +6,7 @@ import (
 )
 
 // negZero is a float64 representation of -0.
-var negZero = math.Float64frombits(1 << 63)
-
-func TestIsNaN(t *testing.T) {
-	tests := []struct {
-		input Float128
-		want  bool
-	}{
-		{NaN(), true},
-		{Float128{0, 0}, false},
-	}
-
-	for _, tt := range tests {
-		got := tt.input.IsNaN()
-		if got != tt.want {
-			t.Errorf("{%x, %x}.IsNaN() = %v, want %v", tt.input.h, tt.input.l, got, tt.want)
-		}
-	}
-}
+var negZero = math.Copysign(0, -1)
 
 func TestIsInf(t *testing.T) {
 	tests := []struct {
@@ -59,7 +42,7 @@ func TestFromFloat64(t *testing.T) {
 		{negZero, Float128{0x8000_0000_0000_0000, 0}},
 		{math.Inf(1), Float128{0x7fff_0000_0000_0000, 0}},
 		{math.Inf(-1), Float128{0xffff_0000_0000_0000, 0}},
-		{math.NaN(), Float128{0x7fff_8000_0000_0000, 0x01}},
+		{math.NaN(), Float128{0x7fff_8000_0000_0000, 0x1000000000000000}},
 		{1, Float128{0x3fff_0000_0000_0000, 0}},
 		{-2, Float128{0xc000_0000_0000_0000, 0}},
 
@@ -82,39 +65,69 @@ func TestFromFloat64(t *testing.T) {
 	}
 }
 
+//go:generate sh -c "perl scripts/f64_to_f128.pl | gofmt > f64_to_f128_test.go"
+
+func TestFromFloat64_TestFloat(t *testing.T) {
+	for _, tt := range f64ToF128 {
+		f64 := math.Float64frombits(tt.f64)
+		got := FromFloat64(f64)
+		if got != tt.f128 {
+			t.Errorf("FromFloat64(%x) = {0x%x, 0x%x}, want {0x%x, 0x%x}", tt.f64, got.h, got.l, tt.f128.h, tt.f128.l)
+		}
+	}
+}
+
 func TestFloat64(t *testing.T) {
 	tests := []struct {
 		input Float128
 		want  float64
 	}{
-		// special cases
-		{Float128{0x7fff_0000_0000_0000, 0}, math.Inf(1)},
-		{Float128{0xffff_0000_0000_0000, 0}, math.Inf(-1)},
-		{Float128{0x7fff_8000_0000_0000, 0x01}, math.NaN()},
+		// // special cases
+		// {Float128{0x7fff_0000_0000_0000, 0}, math.Inf(1)},
+		// {Float128{0xffff_0000_0000_0000, 0}, math.Inf(-1)},
+		// {Float128{0x7fff_8000_0000_0000, 0x01}, math.NaN()},
 
-		// normal numbers
-		{Float128{0x3fff_0000_0000_0000, 0}, 1},
-		{Float128{0xc000_0000_0000_0000, 0}, -2},
+		// // normal numbers
+		// {Float128{0x3fff_0000_0000_0000, 0}, 1},
+		// {Float128{0xc000_0000_0000_0000, 0}, -2},
 
-		// small normal numbers of float64
-		{Float128{0x3c01_0000_0000_0000, 0}, 0x1p-1022},
-		{Float128{0x3c01_0000_0000_0000, 0x1000_0000_0000_0000}, 0x1.0000000000001p-1022},
+		// // small normal numbers of float64
+		// {Float128{0x3c01_0000_0000_0000, 0}, 0x1p-1022},
+		// {Float128{0x3c01_0000_0000_0000, 0x1000_0000_0000_0000}, 0x1.0000000000001p-1022},
 
-		// subnormal numbers of float64
-		{Float128{0x3c00_0000_0000_0000, 0}, 0x1p-1023},
-		{Float128{0x3c00_0000_0000_0000, 0x1000_0000_0000_0000}, 0x1p-1023},
-		{Float128{0x3c00_0000_0000_0000, 0x1000_0000_0000_0001}, 0x1.0000000000002p-1023},
-		{Float128{0x3c00_0000_0000_0000, 0x3000_0000_0000_0000}, 0x1.0000000000004p-1023},
-		{Float128{0x3bcd_0000_0000_0000, 0}, 0x1p-1074},
+		// // subnormal numbers of float64
+		// {Float128{0x3c00_0000_0000_0000, 0}, 0x1p-1023},
+		// {Float128{0x3c00_0000_0000_0000, 0x1000_0000_0000_0000}, 0x1p-1023},
+		// {Float128{0x3c00_0000_0000_0000, 0x1000_0000_0000_0001}, 0x1.0000000000002p-1023},
+		// {Float128{0x3c00_0000_0000_0000, 0x3000_0000_0000_0000}, 0x1.0000000000004p-1023},
+		// {Float128{0x3bcd_0000_0000_0000, 0}, 0x1p-1074},
 
-		// round to nearest, tie to even
-		{Float128{0x3fff_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, 2},
+		// // round to nearest, tie to even
+		// {Float128{0x3fff_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, 2},
+
+		// overflow
+		{Float128{0xfffe000000000000, 0x0}, math.Inf(-1)},
 	}
 
 	for _, tt := range tests {
 		got := tt.input.Float64()
+		if tt.input.IsNaN() && math.IsNaN(got) {
+			continue
+		}
 		if math.Float64bits(got) != math.Float64bits(tt.want) {
 			t.Errorf("{%x, %x}.Float64() = %x, want %x", tt.input.h, tt.input.l, got, tt.want)
+		}
+	}
+}
+
+//go:generate sh -c "perl scripts/f128_to_f64.pl | gofmt > f128_to_f64_test.go"
+
+func TestFloat64_TestFloat(t *testing.T) {
+	for _, tt := range f128ToF64 {
+		f64 := tt.f128.Float64()
+		got := math.Float64bits(f64)
+		if got != tt.f64 {
+			t.Errorf("{0x%x, 0x%x}.Float64() = %x, want %x", tt.f128.h, tt.f128.l, got, tt.f64)
 		}
 	}
 }
@@ -138,5 +151,38 @@ func TestGoString(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("{%x, %x}.GoString() = %v, want %v", tt.input.h, tt.input.l, got, tt.want)
 		}
+	}
+}
+
+func TestIsNaN(t *testing.T) {
+	tests := []struct {
+		input Float128
+		want  bool
+	}{
+		// examples of NaN
+		{NaN(), true},
+		{Float128{0xffffffffffffffff, 0xfffffffffffffffe}, true},
+		{Float128{0xffff000000000000, 0x0000000000000001}, true},
+
+		{Float128{0, 0}, false},
+	}
+
+	for _, tt := range tests {
+		got := tt.input.IsNaN()
+		if got != tt.want {
+			t.Errorf("{%x, %x}.IsNaN() = %v, want %v", tt.input.h, tt.input.l, got, tt.want)
+		}
+	}
+}
+
+func TestIsSignalingNaN(t *testing.T) {
+	nan1 := Float128{0xffffffffffffffff, 0xfffffffffffffffe}
+	if nan1.isSignalingNaN() {
+		t.Errorf("isSignalingNaN(%s) = true, want false", dump(nan1))
+	}
+
+	nan2 := Float128{0xffff000000000000, 0x0000000000000001}
+	if !nan2.isSignalingNaN() {
+		t.Errorf("isSignalingNaN(%s) = false, want true", dump(nan2))
 	}
 }

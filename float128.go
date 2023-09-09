@@ -8,7 +8,7 @@ import (
 	"github.com/shogo82148/int128"
 )
 
-var nan = Float128{0x7fff_8000_0000_0000, 0x01}
+var nan = Float128{0x7fff_8000_0000_0000, 0x00}
 var inf = Float128{0x7fff_0000_0000_0000, 0x00}
 var neginf = Float128{0xffff_0000_0000_0000, 0x00}
 var one = int128.Uint128{L: 1}
@@ -19,6 +19,7 @@ const (
 	bias128      = 16383        // bias for exponent
 	signMask128H = 1 << 63      // mask for sign bit
 	fracMask128H = 1<<(shift128-64) - 1
+	qNaNBitH     = (1 << (shift128 - 64 - 1))
 )
 
 const (
@@ -32,17 +33,6 @@ const (
 // Float128 represents a 128-bit floating point number.
 type Float128 struct {
 	h, l uint64
-}
-
-// NaN returns a Float128 representation of NaN.
-func NaN() Float128 {
-	return nan
-}
-
-// IsNaN reports whether f is NaN.
-func (f Float128) IsNaN() bool {
-	const expMask = (mask128 << (shift128 - 64))
-	return f.h&expMask == expMask && f.h&fracMask128H != 0 && f.l != 0
 }
 
 // Inf returns positive infinity if sign >= 0, negative infinity if sign < 0.
@@ -78,7 +68,10 @@ func FromFloat64(f float64) Float128 {
 	if exp == mask64 {
 		if frac != 0 {
 			// f is NaN
-			return nan
+			return Float128{
+				sign | (mask128 << (shift128 - 64)) | (frac >> (64 - shift128 + shift64)) | qNaNBitH,
+				frac << (shift128 - shift64),
+			}
 		} else {
 			// f is ±Inf
 			return Float128{
@@ -116,7 +109,9 @@ func (f Float128) Float64() float64 {
 	if exp == mask128 {
 		if frac.H|frac.L != 0 {
 			// f is NaN
-			return math.NaN()
+			const qNaNBit = 1 << (shift64 - 1)
+			f64 := sign | (mask64 << shift64) | qNaNBit | (frac.H << (64 - shift128 + shift64)) | (frac.L >> (shift128 - shift64))
+			return math.Float64frombits(f64)
 		} else {
 			// f is ±Inf
 			return math.Float64frombits(sign | (mask64 << shift64))
@@ -132,11 +127,15 @@ func (f Float128) Float64() float64 {
 		frac = frac.Rsh(uint(roundBit))
 		return math.Float64frombits(sign | frac.L)
 	}
+	if exp >= mask64-bias64 {
+		// overflow, the result is ±Inf
+		return math.Float64frombits(sign | (mask64 << shift64))
+	}
 
 	// round to nearest, tie to even
 	var carry uint64
 	frac.L, carry = bits.Add64(frac.L, 0x7ff_ffff_ffff_ffff+(frac.L>>(shift128-shift64)&1), 0)
-	frac.H = f.h + carry
+	frac.H, _ = bits.Add64(f.h, 0, carry)
 	exp = int((frac.H>>(shift128-64))&mask128) - mask128 + bias64
 	frac.H &= fracMask128H
 
@@ -173,4 +172,46 @@ func (f Float128) GoString() string {
 		return fmt.Sprintf("%c0x0.%012x%016xp%+d", c, frac.H, frac.L, -bias128+1)
 	}
 	return fmt.Sprintf("%c0x1.%012x%016xp%+d", c, frac.H, frac.L, exp-bias128)
+}
+
+// NaN returns a Float128 representation of NaN.
+func NaN() Float128 {
+	return nan
+}
+
+// IsNaN reports whether f is NaN.
+func (f Float128) IsNaN() bool {
+	exp := (f.h >> (shift128 - 64)) & mask128
+	if exp != mask128 {
+		return false
+	}
+	if (f.h&fracMask128H | f.l) == 0 {
+		return false
+	}
+	return true
+}
+
+func (f Float128) isSignalingNaN() bool {
+	exp := (f.h >> (shift128 - 64)) & mask128
+	if exp != mask128 {
+		return false
+	}
+	if (f.h&fracMask128H | f.l) == 0 {
+		return false
+	}
+	return f.h&qNaNBitH == 0
+}
+
+// a or b must be NaN.
+func propagateNaN(a, b Float128) Float128 {
+	if a.isSignalingNaN() {
+		return Float128{a.h | qNaNBitH, a.l}
+	}
+	if b.isSignalingNaN() {
+		return Float128{b.h | qNaNBitH, b.l}
+	}
+	if a.IsNaN() {
+		return a
+	}
+	return b
 }
