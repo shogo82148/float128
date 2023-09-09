@@ -178,6 +178,14 @@ func TestAdd(t *testing.T) {
 			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
 			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0002},
 		},
+
+		// positive normal number + negative normal number => normal number
+		{
+			// 1 + (-0.5) = 0.5
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0xbffe_0000_0000_0000, 0},
+			Float128{0x3ffe_0000_0000_0000, 0},
+		},
 	}
 
 	for _, tt := range tests {

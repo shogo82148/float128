@@ -163,7 +163,55 @@ func (a Float128) Add(b Float128) Float128 {
 	if signA == signB {
 		return add(signA, expA, expB, a, b)
 	}
-	return Float128{} // TODO
+
+	var fracA int128.Uint128
+	if expA == -bias128 {
+		fracA = int128.Uint128{H: a.h & fracMask128H, L: a.l}
+		l := fracA.Len()
+		fracA = fracA.Lsh(uint(shift128-l) + 1)
+		expA = l - (bias128 + shift128)
+	} else {
+		fracA = int128.Uint128{H: (a.h & fracMask128H) | (1 << (shift128 - 64)), L: a.l}
+	}
+	fracA = fracA.Lsh(2) // add guard and round bits
+
+	var fracB int128.Uint128
+	if expB == -bias128 {
+		fracB = int128.Uint128{H: b.h & fracMask128H, L: b.l}
+		l := fracB.Len()
+		fracB = fracB.Lsh(uint(shift128-l) + 1)
+		expB = l - (bias128 + shift128)
+	} else {
+		fracB = int128.Uint128{H: (b.h & fracMask128H) | (1 << (shift128 - 64)), L: b.l}
+	}
+	fracB = fracB.Lsh(2) // add guard and round bits
+
+	fracB = fracB.Add(one.Lsh(uint(expA - expB)).Sub(one))
+	fracB = fracB.Rsh(uint(expA - expB))
+	frac := fracA.Sub(fracB)
+	exp := expA
+
+	shift := frac.Len() - (shift128 + 1 + 2)
+	frac = frac.Add(int128.Uint128{H: 0, L: (1<<(shift+1) - 1) + (frac.L>>(shift+2))&1}) // round to nearest even
+	shift = frac.Len() - (shift128 + 1 + 2)
+	frac = frac.Rsh(uint(shift) + 2)
+	exp += shift
+
+	if exp >= mask128-bias128 {
+		// overflow
+		return Float128{inf.h, inf.l}
+	}
+	if exp <= -bias128 {
+		// the result is subnormal
+		shift = -(exp + bias128) - 1
+		offset := one.Lsh(uint(shift) + 1).Sub(one).Add(frac.Rsh(uint(shift) + 2).And(one))
+		frac = frac.Add(offset) // round to nearest even
+		frac = frac.Rsh(uint(shift) + 2)
+		return Float128{(frac.H & fracMask128H), frac.L}
+	}
+
+	exp += bias128
+	return Float128{uint64(exp<<(shift128-64)) | (frac.H & fracMask128H), frac.L}
 }
 
 // add returns a + b.
