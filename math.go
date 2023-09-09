@@ -1,45 +1,8 @@
 package float128
 
 import (
-	"math/bits"
-
 	"github.com/shogo82148/int128"
 )
-
-type uint256 struct {
-	a, b, c, d uint64
-}
-
-func mul128(x, y int128.Uint128) uint256 {
-	h1, l1 := bits.Mul64(x.L, y.L)
-	h2, l2 := bits.Mul64(x.H, y.L)
-	h3, l3 := bits.Mul64(x.L, y.H)
-	h4, l4 := bits.Mul64(x.H, y.H)
-
-	//             x.H  x.L
-	//             y.H  y.L
-	//        -------------
-	//              h1  l1
-	//          h2  l2
-	//          h3  l3
-	//      h4  l4
-	//---------------------
-	//       a   b   c   d
-
-	d := l1
-	c := h1
-	b := l4
-	a := h4
-
-	var carry uint64
-	c, carry = bits.Add64(c, l2, 0)
-	b, carry = bits.Add64(b, h2, carry)
-	a, _ = bits.Add64(a, 0, carry)
-	c, carry = bits.Add64(c, l3, 0)
-	b, carry = bits.Add64(b, h3, carry)
-	a, _ = bits.Add64(a, 0, carry)
-	return uint256{a, b, c, d}
-}
 
 func squash(x uint64) uint64 {
 	if x == 0 {
@@ -184,35 +147,29 @@ func (a Float128) Add(b Float128) Float128 {
 	}
 	exp := expA
 
-	// add guard and round bits
-	fracA = fracA.Lsh(2)
-	fracB = fracB.Lsh(2)
-
 	// align the fraction
-	fracB = fracB.Add(one.Lsh(uint(expA - expB)).Sub(one))
-	fracB = fracB.Rsh(uint(expA - expB))
+	const margin = 4
+	fracA256 := uint256{a: fracA.H, b: fracA.L, c: 0, d: 0}.rsh(margin)
+	fracB256 := uint256{a: fracB.H, b: fracB.L, c: 0, d: 0}.rsh(margin)
+	fracB256 = fracB256.rsh(uint(expA - expB))
+
+	// log.Printf("fracA256 = %#v", fracA256)
+	// log.Printf("fracB256 = %#v", fracB256)
 
 	// do addition
-	ifracA := fracA.Int128()
-	if signA != 0 {
-		ifracA = ifracA.Neg()
-	}
-	ifracB := fracB.Int128()
-	if signB != 0 {
-		ifracB = ifracB.Neg()
-	}
-	ifrac := ifracA.Add(ifracB)
+	ifracA256 := fracA256.int256().setSign(signA != 0)
+	ifracB256 := fracB256.int256().setSign(signB != 0)
+	ifrac256 := ifracA256.add(ifracB256)
 
 	// split into sign and absolute value
-	sign := uint64(ifrac.H) & signMask128H
-	if sign != 0 {
-		ifrac = ifrac.Neg()
-	}
-	frac := ifrac.Uint128()
+	sign := uint64(ifrac256.a) & signMask128H
+	frac256 := ifrac256.abs()
+
+	// log.Printf(" frac256 = %#v", frac256)
 
 	// normalize
 	var shift int32
-	shift = int32(frac.Len()) - (shift128 + 1 + 2)
+	shift = int32(frac256.leadingZeros() - 19)
 
 	if exp+shift < -(bias128 + shift128) {
 		// underflow
@@ -220,24 +177,29 @@ func (a Float128) Add(b Float128) Float128 {
 	} else if exp <= -bias128 {
 		// the result is subnormal
 		shift = 1 - (exp + bias128)
-		offset := one.Lsh(uint(shift) + 1).Sub(one).Add(frac.Rsh(uint(shift) + 2).And(one))
-		frac = frac.Add(offset) // round to nearest even
-		frac = frac.Rsh(uint(shift) + 2)
-		return Float128{sign | frac.H, frac.L}
+		// offset := one.Lsh(uint(shift) + 1).Sub(one).Add(frac256.rsh(uint(shift) + 2).and(one))
+		// frac256 = frac256.add(offset) // round to nearest even
+		// log.Printf(" frac256 = %#v >> %d", frac256, shift-margin+64)
+		frac256 = frac256.rsh(uint(shift - margin + 64))
+		// log.Printf(" frac256 = %#v", frac256)
+		return Float128{sign | frac256.b, frac256.c}
 	}
 
-	frac = frac.Add(int128.Uint128{H: 0, L: (1<<(shift+1) - 1) + (frac.L>>(shift+2))&1}) // round to nearest even
-	shift = int32(frac.Len()) - (shift128 + 1 + 2)
-	frac = frac.Rsh(uint(shift) + 2)
+	ff := uint256{0, 0, 0x7fff_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}
+	frac256 = frac256.add(ff.rsh(uint(shift + margin))) // round to nearest even
+	shift = int32(frac256.leadingZeros() - 19)
+	// log.Printf(" frac256 = %#v << %d", frac256, shift+4)
+	frac256 = frac256.lsh(uint(shift + margin))
+	// log.Printf(" frac256 = %#v", frac256)
 
-	exp += shift
+	exp -= shift
 	exp += bias128
 	if exp >= mask128 {
 		// overflow
 		return Float128{sign | inf.h, inf.l}
 	}
 
-	return Float128{sign | uint64(exp)<<(shift128-64) | (frac.H & fracMask128H), frac.L}
+	return Float128{sign | uint64(exp)<<(shift128-64) | (frac256.a & fracMask128H), frac256.b}
 }
 
 func (a Float128) Sub(b Float128) Float128 {

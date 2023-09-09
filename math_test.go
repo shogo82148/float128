@@ -252,6 +252,13 @@ func TestAdd(t *testing.T) {
 			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000}, // 1
 			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000}, // 1
 		},
+
+		// random tests
+		{
+			Float128{0x3c01001000000000, 0x0000000ffffffffe}, // +0x1.0010000000000000000ffffffffep-1022
+			Float128{0xbc01000000000000, 0x00002000003fffff}, // +0x1.0010000000000000000ffffffffep-1022
+			Float128{0x3bf4ffffffffffff, 0xfc01fff7ffffe000}, // +0x1.fffffffffffffc01fff7ffffe000p-1035
+		},
 	}
 
 	for _, tt := range tests {
