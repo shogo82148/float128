@@ -95,3 +95,121 @@ func TestMul(t *testing.T) {
 		}
 	}
 }
+
+func TestAdd(t *testing.T) {
+	tests := []struct {
+		a, b Float128
+		want Float128
+	}{
+		// normal number + normal number
+		{
+			// 1 + 1 = 2
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x4000_0000_0000_0000, 0},
+		},
+		{
+			// (-1) + (-1) = (-2)
+			Float128{0xbfff_0000_0000_0000, 0},
+			Float128{0xbfff_0000_0000_0000, 0},
+			Float128{0xc000_0000_0000_0000, 0},
+		},
+		{
+			// 1 + 2 = 3
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x4000_0000_0000_0000, 0},
+			Float128{0x4000_8000_0000_0000, 0},
+		},
+		{
+			// 2 + 1 = 3
+			Float128{0x4000_0000_0000_0000, 0},
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x4000_8000_0000_0000, 0},
+		},
+		{
+			// 1 + 2⁻¹¹²
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3f8f_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest number larger than one
+		},
+		{
+			// round up
+			// 1 + 1.75 * 2⁻¹¹² ~ 1 + 2 * 2⁻¹¹²
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3f8f_c000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0002},
+		},
+		{
+			// round down
+			// 1 + 2⁻¹¹³ ~ 1
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3f8e_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
+		},
+		{
+			// round down
+			// 1 + 1.0000000000000000000000000000000001926 * 2⁻¹¹³ ~ 1.0000000000000000000000000000000001926
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3f8e_0000_0000_0000, 0x0000_0000_0000_0001},
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0001},
+		},
+		{
+			// overflow
+			Float128{0x7ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // 2¹⁶³⁸³ × (2 − 2⁻¹¹²)
+			Float128{0x7f8e_0000_0000_0000, 0x0000_0000_0000_0000}, // 2¹⁶³⁸³ × 2⁻¹¹²
+			Float128{0x7fff_0000_0000_0000, 0x0000_0000_0000_0000}, // +Inf
+		},
+
+		// subnormal number + subnormal number => normal number
+		{
+			Float128{0x0000_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest subnormal number
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x0001_0000_0000_0000, 0x0000_0000_0000_0000},
+		},
+		{
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x0000_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest subnormal number
+			Float128{0x0001_0000_0000_0000, 0x0000_0000_0000_0000},
+		},
+
+		// subnormal number + subnormal number => subnormal number
+		{
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0002},
+		},
+
+		// positive normal number + negative normal number => normal number
+		{
+			// 1 + (-0.5) = 0.5
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0xbffe_0000_0000_0000, 0},
+			Float128{0x3ffe_0000_0000_0000, 0},
+		},
+		{
+			// (-0.5) + 1 = 0.5
+			Float128{0xbffe_0000_0000_0000, 0},
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x3ffe_0000_0000_0000, 0},
+		},
+		{
+			// 1 + (-2⁻¹¹³)
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0xbf8e_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest number less than one
+		},
+		{
+			// (-2⁻¹¹³) + 1
+			Float128{0xbf8e_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
+			Float128{0x3ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest number less than one
+		},
+	}
+
+	for _, tt := range tests {
+		got := tt.a.Add(tt.b)
+		if got != tt.want {
+			t.Errorf("%#v + %#v: got %#v, want %#v", tt.a, tt.b, got, tt.want)
+		}
+	}
+}
