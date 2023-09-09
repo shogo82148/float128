@@ -190,6 +190,19 @@ func (a Float128) Add(b Float128) Float128 {
 	// normalize
 	var shift int32
 	shift = int32(frac.Len()) - (shift128 + 1 + 2)
+
+	if exp+shift < -(bias128 + shift128) {
+		// underflow
+		return Float128{sign, 0}
+	} else if exp <= -bias128 {
+		// the result is subnormal
+		shift = 1 - (exp + bias128)
+		offset := one.Lsh(uint(shift) + 1).Sub(one).Add(frac.Rsh(uint(shift) + 2).And(one))
+		frac = frac.Add(offset) // round to nearest even
+		frac = frac.Rsh(uint(shift) + 2)
+		return Float128{sign | frac.H, frac.L}
+	}
+
 	frac = frac.Add(int128.Uint128{H: 0, L: (1<<(shift+1) - 1) + (frac.L>>(shift+2))&1}) // round to nearest even
 	shift = int32(frac.Len()) - (shift128 + 1 + 2)
 	frac = frac.Rsh(uint(shift) + 2)

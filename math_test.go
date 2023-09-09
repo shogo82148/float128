@@ -201,24 +201,24 @@ func TestAdd(t *testing.T) {
 			Float128{0x7fff_0000_0000_0000, 0x0000_0000_0000_0000}, // +Inf
 		},
 
-		// // subnormal number + subnormal number => normal number
-		// {
-		// 	Float128{0x0000_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest subnormal number
-		// 	Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
-		// 	Float128{0x0001_0000_0000_0000, 0x0000_0000_0000_0000},
-		// },
-		// {
-		// 	Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
-		// 	Float128{0x0000_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest subnormal number
-		// 	Float128{0x0001_0000_0000_0000, 0x0000_0000_0000_0000},
-		// },
+		// subnormal number + subnormal number => normal number
+		{
+			Float128{0x0000_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest subnormal number
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x0001_0000_0000_0000, 0x0000_0000_0000_0000},
+		},
+		{
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x0000_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest subnormal number
+			Float128{0x0001_0000_0000_0000, 0x0000_0000_0000_0000},
+		},
 
-		// // subnormal number + subnormal number => subnormal number
-		// {
-		// 	Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
-		// 	Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
-		// 	Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0002},
-		// },
+		// subnormal number + subnormal number => subnormal number
+		{
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0002},
+		},
 
 		// positive normal number + negative normal number => normal number
 		{
