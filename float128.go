@@ -109,7 +109,9 @@ func (f Float128) Float64() float64 {
 	if exp == mask128 {
 		if frac.H|frac.L != 0 {
 			// f is NaN
-			return math.NaN()
+			const qNaNBit = 1 << (shift64 - 1)
+			f64 := sign | (mask64 << shift64) | qNaNBit | (frac.H << (64 - shift128 + shift64)) | (frac.L >> (shift128 - shift64))
+			return math.Float64frombits(f64)
 		} else {
 			// f is ±Inf
 			return math.Float64frombits(sign | (mask64 << shift64))
@@ -125,11 +127,15 @@ func (f Float128) Float64() float64 {
 		frac = frac.Rsh(uint(roundBit))
 		return math.Float64frombits(sign | frac.L)
 	}
+	if exp >= mask64-bias64 {
+		// overflow, the result is ±Inf
+		return math.Float64frombits(sign | (mask64 << shift64))
+	}
 
 	// round to nearest, tie to even
 	var carry uint64
 	frac.L, carry = bits.Add64(frac.L, 0x7ff_ffff_ffff_ffff+(frac.L>>(shift128-shift64)&1), 0)
-	frac.H = f.h + carry
+	frac.H, _ = bits.Add64(f.h, 0, carry)
 	exp = int((frac.H>>(shift128-64))&mask128) - mask128 + bias64
 	frac.H &= fracMask128H
 
