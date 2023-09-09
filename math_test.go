@@ -213,3 +213,16 @@ func TestAdd(t *testing.T) {
 		}
 	}
 }
+
+//go:generate sh -c "perl scripts/f128_add.pl | gofmt > f128_add_test.go"
+
+func TestAdd_TestFloat(t *testing.T) {
+	for _, tt := range f128Add {
+		fa := tt.a
+		fb := tt.b
+		got := fa.Add(fb)
+		if got != tt.want {
+			t.Errorf("%#v + %#v: got %#v, want %#v", fa, fb, got, tt.want)
+		}
+	}
+}
