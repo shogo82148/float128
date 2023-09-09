@@ -2,11 +2,55 @@ package float128
 
 import (
 	"math"
+	"math/bits"
+	"runtime"
 	"testing"
 )
 
 // negZero is a float64 representation of -0.
 var negZero = math.Copysign(0, -1)
+
+// xoshiro256++ PRNG
+// It is used for benchmarking, avoiding branch prediction.
+// Go port of http://prng.di.unimi.it/xoshiro256plusplus.c
+type xoshiro256pp struct {
+	s [4]uint64
+}
+
+func newXoshiro256pp() *xoshiro256pp {
+	return &xoshiro256pp{
+		[4]uint64{1, 2, 3, 4},
+	}
+}
+
+func (s *xoshiro256pp) Uint64() uint64 {
+	result := bits.RotateLeft64(s.s[0]+s.s[3], 23) + s.s[0]
+	t := s.s[1] << 17
+	s.s[2] ^= s.s[0]
+	s.s[3] ^= s.s[1]
+	s.s[1] ^= s.s[2]
+	s.s[0] ^= s.s[3]
+	s.s[2] ^= t
+	s.s[3] = bits.RotateLeft64(s.s[3], 45)
+	return result
+}
+
+func (s *xoshiro256pp) Float64() float64 {
+	b := s.Uint64()
+	return math.Float64frombits(b)
+}
+
+func (s *xoshiro256pp) Float128Pair() (Float128, Float128) {
+	s.Uint64()
+	return Float128{h: s.s[0], l: s.s[1]}, Float128{h: s.s[2], l: s.s[3]}
+}
+
+func BenchmarkXoshiro256ppFloat64(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		r.Float64()
+	}
+}
 
 func TestIsInf(t *testing.T) {
 	tests := []struct {
@@ -77,33 +121,41 @@ func TestFromFloat64_TestFloat(t *testing.T) {
 	}
 }
 
+func BenchmarkFromFloat64(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		f := r.Float64()
+		runtime.KeepAlive(FromFloat64(f))
+	}
+}
+
 func TestFloat64(t *testing.T) {
 	tests := []struct {
 		input Float128
 		want  float64
 	}{
-		// // special cases
-		// {Float128{0x7fff_0000_0000_0000, 0}, math.Inf(1)},
-		// {Float128{0xffff_0000_0000_0000, 0}, math.Inf(-1)},
-		// {Float128{0x7fff_8000_0000_0000, 0x01}, math.NaN()},
+		// special cases
+		{Float128{0x7fff_0000_0000_0000, 0}, math.Inf(1)},
+		{Float128{0xffff_0000_0000_0000, 0}, math.Inf(-1)},
+		{Float128{0x7fff_8000_0000_0000, 0x01}, math.NaN()},
 
-		// // normal numbers
-		// {Float128{0x3fff_0000_0000_0000, 0}, 1},
-		// {Float128{0xc000_0000_0000_0000, 0}, -2},
+		// normal numbers
+		{Float128{0x3fff_0000_0000_0000, 0}, 1},
+		{Float128{0xc000_0000_0000_0000, 0}, -2},
 
-		// // small normal numbers of float64
-		// {Float128{0x3c01_0000_0000_0000, 0}, 0x1p-1022},
-		// {Float128{0x3c01_0000_0000_0000, 0x1000_0000_0000_0000}, 0x1.0000000000001p-1022},
+		// small normal numbers of float64
+		{Float128{0x3c01_0000_0000_0000, 0}, 0x1p-1022},
+		{Float128{0x3c01_0000_0000_0000, 0x1000_0000_0000_0000}, 0x1.0000000000001p-1022},
 
-		// // subnormal numbers of float64
-		// {Float128{0x3c00_0000_0000_0000, 0}, 0x1p-1023},
-		// {Float128{0x3c00_0000_0000_0000, 0x1000_0000_0000_0000}, 0x1p-1023},
-		// {Float128{0x3c00_0000_0000_0000, 0x1000_0000_0000_0001}, 0x1.0000000000002p-1023},
-		// {Float128{0x3c00_0000_0000_0000, 0x3000_0000_0000_0000}, 0x1.0000000000004p-1023},
-		// {Float128{0x3bcd_0000_0000_0000, 0}, 0x1p-1074},
+		// subnormal numbers of float64
+		{Float128{0x3c00_0000_0000_0000, 0}, 0x1p-1023},
+		{Float128{0x3c00_0000_0000_0000, 0x1000_0000_0000_0000}, 0x1p-1023},
+		{Float128{0x3c00_0000_0000_0000, 0x1000_0000_0000_0001}, 0x1.0000000000002p-1023},
+		{Float128{0x3c00_0000_0000_0000, 0x3000_0000_0000_0000}, 0x1.0000000000004p-1023},
+		{Float128{0x3bcd_0000_0000_0000, 0}, 0x1p-1074},
 
-		// // round to nearest, tie to even
-		// {Float128{0x3fff_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, 2},
+		// round to nearest, tie to even
+		{Float128{0x3fff_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, 2},
 
 		// overflow
 		{Float128{0xfffe000000000000, 0x0}, math.Inf(-1)},
@@ -129,6 +181,14 @@ func TestFloat64_TestFloat(t *testing.T) {
 		if got != tt.f64 {
 			t.Errorf("{0x%x, 0x%x}.Float64() = %x, want %x", tt.f128.h, tt.f128.l, got, tt.f64)
 		}
+	}
+}
+
+func BenchmarkFloat64(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		f, _ := r.Float128Pair()
+		runtime.KeepAlive(f.Float64())
 	}
 }
 

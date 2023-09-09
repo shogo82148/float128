@@ -2,6 +2,7 @@ package float128
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 )
 
@@ -134,6 +135,14 @@ func TestMul_TestFloat(t *testing.T) {
 				t.Errorf("%s * %s: got %s, want %s", dump(fa), dump(fb), dump(got), dump(tt.want))
 			}
 		}()
+	}
+}
+
+func BenchmarkMul(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		a, b := r.Float128Pair()
+		runtime.KeepAlive(a.Mul(b))
 	}
 }
 
@@ -334,5 +343,13 @@ func TestAdd_TestFloat(t *testing.T) {
 				t.Errorf("%s + %s: got %s, want %s", dump(fa), dump(fb), dump(got), dump(tt.want))
 			}
 		}()
+	}
+}
+
+func BenchmarkAdd(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		a, b := r.Float128Pair()
+		runtime.KeepAlive(a.Add(b))
 	}
 }
