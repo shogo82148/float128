@@ -117,7 +117,7 @@ func (a Float128) Mul(b Float128) Float128 {
 		offset := one.Lsh(uint(shift) + 1).Sub(one).Add(frac.Rsh(uint(shift) + 2).And(one))
 		frac = frac.Add(offset) // round to nearest even
 		frac = frac.Rsh(uint(shift) + 2)
-		return Float128{sign | (frac.H & fracMask128H), frac.L}
+		return Float128{sign | frac.H, frac.L}
 	}
 
 	frac = frac.Add(int128.Uint128{H: 0, L: (1<<(shift+1) - 1) + (frac.L>>(shift+2))&1}) // round to nearest even

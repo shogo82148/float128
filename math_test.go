@@ -98,6 +98,13 @@ func TestMul(t *testing.T) {
 			Float128{0xBfff_0000_0000_0000, 0x0000_0000_0000_0000}, // -1
 			Float128{0x7fff_0000_0000_0000, 0x0000_0000_0000_0000}, // +Inf
 		},
+
+		// edge case of normal and subnormal number
+		{
+			Float128{0x0000ffffffffffff, 0xffffffffffffffff}, // +0x0.ffffffffffffffffffffffffffffp-16382
+			Float128{0x3fff000000000000, 0x0000000000000001}, // +0x1.0000000000000000000000000001p+0
+			Float128{0x0001000000000000, 0x0000000000000000}, // +0x1.0000000000000000000000000000p-16382
+		},
 	}
 
 	for _, tt := range tests {
