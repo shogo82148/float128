@@ -101,6 +101,7 @@ func TestAdd(t *testing.T) {
 		a, b Float128
 		want Float128
 	}{
+		// normal number + normal number
 		{
 			// 1 + 1 = 2
 			Float128{0x3fff_0000_0000_0000, 0},
@@ -108,9 +109,21 @@ func TestAdd(t *testing.T) {
 			Float128{0x4000_0000_0000_0000, 0},
 		},
 		{
+			// (-1) + (-1) = (-2)
+			Float128{0xbfff_0000_0000_0000, 0},
+			Float128{0xbfff_0000_0000_0000, 0},
+			Float128{0xc000_0000_0000_0000, 0},
+		},
+		{
 			// 1 + 2 = 3
 			Float128{0x3fff_0000_0000_0000, 0},
 			Float128{0x4000_0000_0000_0000, 0},
+			Float128{0x4000_8000_0000_0000, 0},
+		},
+		{
+			// 2 + 1 = 3
+			Float128{0x4000_0000_0000_0000, 0},
+			Float128{0x3fff_0000_0000_0000, 0},
 			Float128{0x4000_8000_0000_0000, 0},
 		},
 		{
@@ -128,17 +141,35 @@ func TestAdd(t *testing.T) {
 		},
 		{
 			// round down
-			// 1 + 2⁻¹¹³
+			// 1 + 2⁻¹¹³ ~ 1
 			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
 			Float128{0x3f8e_0000_0000_0000, 0x0000_0000_0000_0000},
 			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
 		},
 		{
 			// round down
-			// 1 + 2⁻¹¹³
+			// 1 + 1.0000000000000000000000000000000001926 * 2⁻¹¹³ ~ 1.0000000000000000000000000000000001926
 			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0000},
 			Float128{0x3f8e_0000_0000_0000, 0x0000_0000_0000_0001},
 			Float128{0x3fff_0000_0000_0000, 0x0000_0000_0000_0001},
+		},
+		{
+			// overflow
+			Float128{0x7ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // 2¹⁶³⁸³ × (2 − 2⁻¹¹²)
+			Float128{0x7f8e_0000_0000_0000, 0x0000_0000_0000_0000}, // 2¹⁶³⁸³ × 2⁻¹¹²
+			Float128{0x7fff_0000_0000_0000, 0x0000_0000_0000_0000}, // +Inf
+		},
+
+		// subnormal number + subnormal number
+		{
+			Float128{0x0000_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest subnormal number
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x0001_0000_0000_0000, 0x0000_0000_0000_0000},
+		},
+		{
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x0000_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest subnormal number
+			Float128{0x0001_0000_0000_0000, 0x0000_0000_0000_0000},
 		},
 	}
 
