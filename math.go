@@ -165,9 +165,11 @@ func (a Float128) Add(b Float128) Float128 {
 	fracA = fracA.Lsh(2)
 	fracB = fracB.Lsh(2)
 
+	// align the fraction
 	fracB = fracB.Add(one.Lsh(uint(expA - expB)).Sub(one))
 	fracB = fracB.Rsh(uint(expA - expB))
 
+	// do addition
 	ifracA := fracA.Int128()
 	if signA != 0 {
 		ifracA = ifracA.Neg()
@@ -178,19 +180,27 @@ func (a Float128) Add(b Float128) Float128 {
 	}
 	ifrac := ifracA.Add(ifracB)
 
+	// split into sign and absolute value
 	sign := uint64(ifrac.H) & signMask128H
 	if sign != 0 {
 		ifrac = ifrac.Neg()
 	}
 	frac := ifrac.Uint128()
 
+	// normalize
 	var shift int32
 	shift = int32(frac.Len()) - (shift128 + 1 + 2)
 	frac = frac.Add(int128.Uint128{H: 0, L: (1<<(shift+1) - 1) + (frac.L>>(shift+2))&1}) // round to nearest even
+	shift = int32(frac.Len()) - (shift128 + 1 + 2)
 	frac = frac.Rsh(uint(shift) + 2)
-	exp += shift
 
+	exp += shift
 	exp += bias128
+	if exp >= mask128 {
+		// overflow
+		return Float128{sign | inf.h, inf.l}
+	}
+
 	return Float128{sign | uint64(exp)<<(shift128-64) | (frac.H & fracMask128H), frac.L}
 }
 
