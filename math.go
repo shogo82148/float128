@@ -175,12 +175,18 @@ func (a Float128) Add(b Float128) Float128 {
 	}
 
 	fracA := int128.Uint128{H: a.h&fracMask128H | (1 << (shift128 - 64)), L: a.l}
+	fracA = fracA.Lsh(2) // add guard and round bits
 	fracB := int128.Uint128{H: b.h&fracMask128H | (1 << (shift128 - 64)), L: b.l}
-	frac := fracA.Add(fracB.Rsh(uint(expA - expB)))
+	fracB = fracB.Lsh(2) // add guard and round bits
+	fracB = fracB.Add(one.Lsh(uint(expA - expB)).Sub(one))
+	fracB = fracB.Rsh(uint(expA - expB))
+	frac := fracA.Add(fracB)
 	exp := expA
 
-	shift := frac.Len() - (shift128 + 1)
-	frac = frac.Rsh(uint(shift))
+	shift := frac.Len() - (shift128 + 1 + 2)
+	frac = frac.Add(int128.Uint128{H: 0, L: (1<<(shift+1) - 1) + (frac.L>>(shift+2))&1}) // round to nearest even
+	shift = frac.Len() - (shift128 + 1 + 2)
+	frac = frac.Rsh(uint(shift) + 2)
 	exp += shift
 
 	exp += bias128
