@@ -142,17 +142,40 @@ func (a Float128) Add(b Float128) Float128 {
 	if a.IsNaN() || b.IsNaN() {
 		return propagateNaN(a, b)
 	}
-	if ((a.h &^ signMask128H) | a.l) == 0 {
+	if a.isZero() {
 		// ±0 + b = b
 		return b
 	}
-	if ((b.h &^ signMask128H) | b.l) == 0 {
+	if b.isZero() {
 		// a + ±0 = a
 		return a
 	}
 
 	signA, expA, fracA := a.split()
 	signB, expB, fracB := b.split()
+
+	// handle special cases
+	if expA == mask128-bias128 {
+		// NaN check is done above; a is ±Inf
+		if expB == mask128-bias128 {
+			// NaN check is done above; b is ±Inf
+			if signA == signB {
+				// ±Inf + ±Inf = ±Inf
+				return Float128{signA | inf.h, inf.l}
+			} else {
+				// ±Inf + ∓Inf = NaN
+				return nan
+			}
+		} else {
+			// b is finite, the result is ±Inf
+			return a
+		}
+	}
+	if expB == mask128-bias128 {
+		// NaN check is done above; b is ±Inf
+		// NaN and Inf checks are done above; a is finite
+		return b
+	}
 
 	if expA < expB {
 		signA, signB = signB, signA

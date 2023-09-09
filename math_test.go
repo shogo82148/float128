@@ -273,13 +273,12 @@ func TestAdd_TestFloat(t *testing.T) {
 			defer func() {
 				err := recover()
 				if err != nil {
-					t.Errorf("%#v + %#v: want %#v, panic! %v", fa, fb, tt.want, err)
+					t.Errorf("%s + %s: want %s, panic %#v", dump(fa), dump(fb), dump(tt.want), err)
 				}
 			}()
 			got := fa.Add(fb)
 			if got != tt.want {
-				t.Errorf("%#v (%016x_%016x) + %#v (%016x_%016x): got %#v (%016x_%016x), want %#v (%016x_%016x)",
-					fa, fa.h, fa.l, fb, fb.h, fb.l, got, got.h, got.l, tt.want, tt.want.h, tt.want.l)
+				t.Errorf("%s + %s: got %s, want %s", dump(fa), dump(fb), dump(got), dump(tt.want))
 			}
 		}()
 	}
