@@ -6,7 +6,7 @@ import (
 )
 
 // negZero is a float64 representation of -0.
-var negZero = math.Copysign(0, 1)
+var negZero = math.Copysign(0, -1)
 
 func TestIsInf(t *testing.T) {
 	tests := []struct {
@@ -42,7 +42,7 @@ func TestFromFloat64(t *testing.T) {
 		{negZero, Float128{0x8000_0000_0000_0000, 0}},
 		{math.Inf(1), Float128{0x7fff_0000_0000_0000, 0}},
 		{math.Inf(-1), Float128{0xffff_0000_0000_0000, 0}},
-		{math.NaN(), Float128{0x7fff_8000_0000_0000, 0x01}},
+		{math.NaN(), Float128{0x7fff_8000_0000_0000, 0x1000000000000000}},
 		{1, Float128{0x3fff_0000_0000_0000, 0}},
 		{-2, Float128{0xc000_0000_0000_0000, 0}},
 

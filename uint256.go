@@ -98,6 +98,10 @@ func (x uint256) lsh(n uint) uint256 {
 	}
 }
 
+func (x uint256) and(y uint256) uint256 {
+	return uint256{x.a & y.a, x.b & y.b, x.c & y.c, x.d & y.d}
+}
+
 func (x uint256) leadingZeros() int {
 	n := bits.LeadingZeros64(x.a)
 	if n == 64 {
@@ -110,6 +114,10 @@ func (x uint256) leadingZeros() int {
 		n += bits.LeadingZeros64(x.d)
 	}
 	return n
+}
+
+func (x uint256) isZero() bool {
+	return (x.a | x.b | x.c | x.d) == 0
 }
 
 func (x uint256) GoString() string {

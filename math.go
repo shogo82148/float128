@@ -106,6 +106,9 @@ func (a Float128) Add(b Float128) Float128 {
 		return propagateNaN(a, b)
 	}
 	if a.isZero() {
+		if b.isZero() {
+			return Float128{a.h & b.h, 0}
+		}
 		// ±0 + b = b
 		return b
 	}
@@ -165,16 +168,14 @@ func (a Float128) Add(b Float128) Float128 {
 	sign := uint64(ifrac256.a) & signMask128H
 	frac256 := ifrac256.abs()
 
-	// log.Printf(" frac256 = %#v", frac256)
-
 	// normalize
 	var shift int32
 	shift = int32(frac256.leadingZeros() - 19)
 
-	if exp+shift < -(bias128 + shift128) {
+	if frac256.isZero() || exp-shift < -(bias128+shift128) {
 		// underflow
 		return Float128{sign, 0}
-	} else if exp <= -bias128 {
+	} else if exp-shift <= -bias128 {
 		// the result is subnormal
 		shift = 1 - (exp + bias128)
 		// offset := one.Lsh(uint(shift) + 1).Sub(one).Add(frac256.rsh(uint(shift) + 2).and(one))
@@ -185,8 +186,11 @@ func (a Float128) Add(b Float128) Float128 {
 		return Float128{sign | frac256.b, frac256.c}
 	}
 
+	one := uint256{a: 0, b: 0, c: 0, d: 1}
 	ff := uint256{0, 0, 0x7fff_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}
-	frac256 = frac256.add(ff.rsh(uint(shift + margin))) // round to nearest even
+	// log.Printf("           %#v", frac256.rsh(128-uint(shift+margin)))
+	ff = ff.add(frac256.rsh(128 - uint(shift+margin)).and(one)) // round to nearest even
+	frac256 = frac256.add(ff.rsh(uint(shift + margin)))
 	shift = int32(frac256.leadingZeros() - 19)
 	// log.Printf(" frac256 = %#v << %d", frac256, shift+4)
 	frac256 = frac256.lsh(uint(shift + margin))
