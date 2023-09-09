@@ -93,6 +93,11 @@ func (a Float128) Mul(b Float128) Float128 {
 			return Float128{sign | inf.h, inf.l}
 		}
 	}
+	if a.isZero() || b.isZero() {
+		// ±0 * b = ±0
+		// a * ±0 = ±0
+		return Float128{sign, 0}
+	}
 
 	// add guard and round bits
 	fracA = fracA.Lsh(9)

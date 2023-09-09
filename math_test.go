@@ -66,6 +66,13 @@ func TestMul(t *testing.T) {
 			Float128{0x7fff_8000_0000_0000, 0x0000_0000_0000_0000}, // NaN
 		},
 
+		// 0 * anything => 0
+		{
+			Float128{0x4280_0000_01ff_ffff, 0xffff_f7ff_ffff_ffff}, // +0x1.000001fffffffffff7ffffffffffp+641
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0000}, // 0
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0000}, // 0
+		},
+
 		// Infinity * anything => Infinity
 		{
 			// +Inf * +1 => +Inf
@@ -112,13 +119,12 @@ func TestMul_TestFloat(t *testing.T) {
 			defer func() {
 				err := recover()
 				if err != nil {
-					t.Errorf("%#v * %#v: want %#v, panic! %v", fa, fb, tt.want, err)
+					t.Errorf("%s * %s: want %s, panic %#v", dump(fa), dump(fb), dump(tt.want), err)
 				}
 			}()
 			got := fa.Mul(fb)
 			if got != tt.want {
-				t.Errorf("%#v (%016x_%016x) * %#v (%016x_%016x): got %#v (%016x_%016x), want %#v (%016x_%016x)",
-					fa, fa.h, fa.l, fb, fb.h, fb.l, got, got.h, got.l, tt.want, tt.want.h, tt.want.l)
+				t.Errorf("%s * %s: got %s, want %s", dump(fa), dump(fb), dump(got), dump(tt.want))
 			}
 		}()
 	}
