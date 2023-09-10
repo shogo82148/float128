@@ -146,6 +146,40 @@ func BenchmarkMul(b *testing.B) {
 	}
 }
 
+func TestQuo(t *testing.T) {
+	tests := []struct {
+		a, b Float128
+		want Float128
+	}{
+		// normal number / normal number
+		{
+			// 1 / 1 = 1
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x3fff_0000_0000_0000, 0},
+		},
+		{
+			// 1 / 2 = 0.5
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x4000_0000_0000_0000, 0},
+			Float128{0x3ffe_0000_0000_0000, 0},
+		},
+		{
+			// 1 / 3
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x4000_8000_0000_0000, 0},
+			Float128{0x3ffd_5555_5555_5555, 0x5555_5555_5555_5555},
+		},
+	}
+
+	for _, tt := range tests {
+		got := tt.a.Quo(tt.b)
+		if got != tt.want {
+			t.Errorf("%s / %s: got %s, want %s", dump(tt.a), dump(tt.b), dump(got), dump(tt.want))
+		}
+	}
+}
+
 func TestAdd(t *testing.T) {
 	tests := []struct {
 		a, b Float128

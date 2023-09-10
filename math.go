@@ -101,6 +101,25 @@ func (f Float128) isZero() bool {
 	return (f.h&^signMask128H | f.l) == 0
 }
 
+func (a Float128) Quo(b Float128) Float128 {
+	signA, expA, fracA := a.split()
+	signB, expB, fracB := b.split()
+
+	sign := signA ^ signB
+	exp := expA - expB
+	if fracA.Cmp(fracB) < 0 {
+		exp--
+		fracA = fracA.Lsh(1)
+	}
+
+	fracA256 := uint256{a: fracA.H, b: fracA.L, c: 0, d: 0}
+	frac256, _ := fracA256.divMod128(fracB)
+	frac256 = frac256.rsh(16)
+	// log.Printf("%#v", frac256)
+	exp += bias128
+	return Float128{sign | uint64(exp)<<(shift128-64) | frac256.c&fracMask128H, frac256.d}
+}
+
 func (a Float128) Add(b Float128) Float128 {
 	if a.IsNaN() || b.IsNaN() {
 		return propagateNaN(a, b)
