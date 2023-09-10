@@ -254,6 +254,28 @@ func TestQuo(t *testing.T) {
 	}
 }
 
+//go:generate sh -c "perl scripts/f128_div.pl | gofmt > f128_div_test.go"
+
+func TestQuo_TestFloat(t *testing.T) {
+	for _, tt := range f128Div {
+		tt := tt
+		fa := tt.a
+		fb := tt.b
+		func() {
+			defer func() {
+				err := recover()
+				if err != nil {
+					t.Errorf("%s / %s: want %s, panic %#v", dump(fa), dump(fb), dump(tt.want), err)
+				}
+			}()
+			got := fa.Quo(fb)
+			if got != tt.want {
+				t.Errorf("%s / %s: got %s, want %s", dump(fa), dump(fb), dump(got), dump(tt.want))
+			}
+		}()
+	}
+}
+
 func TestAdd(t *testing.T) {
 	tests := []struct {
 		a, b Float128
