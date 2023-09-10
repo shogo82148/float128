@@ -118,6 +118,18 @@ func (a Float128) Quo(b Float128) Float128 {
 
 	fracA256 := uint256{a: fracA.H, b: fracA.L, c: 0, d: 0}
 	frac256, _ := fracA256.divMod128(fracB)
+
+	if exp < -(bias128 + shift128) {
+		// underflow
+		return Float128{sign, 0}
+	} else if exp <= -bias128 {
+		// the result is subnormal
+		shift := uint(1 - (exp + bias128))
+		frac256 = frac256.rsh(uint(shift) + 16)
+		// log.Printf("%#v", frac256)
+		return Float128{sign | frac256.c, frac256.d}
+	}
+
 	frac256 = frac256.rsh(16)
 	// log.Printf("%#v", frac256)
 	exp += bias128

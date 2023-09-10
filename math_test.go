@@ -171,6 +171,21 @@ func TestQuo(t *testing.T) {
 			Float128{0x3ffd_5555_5555_5555, 0x5555_5555_5555_5555},
 		},
 
+		// the result is subnormal
+		{
+			// 2⁻¹⁶³⁸² / 2 = 2⁻¹⁶³⁸³
+			Float128{0x0001_0000_0000_0000, 0}, // smallest positive normal number
+			Float128{0x4000_0000_0000_0000, 0}, // 2
+			Float128{0x0000_8000_0000_0000, 0}, // 2⁻¹⁶³⁸³
+		},
+
+		// underflow
+		{
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x4000_0000_0000_0000, 0},                     // 2
+			Float128{0, 0},                                         // 0
+		},
+
 		// NaN / anything => NaN
 		{
 			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
