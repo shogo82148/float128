@@ -320,6 +320,25 @@ func (a Float128) Compare(b Float128) int {
 	return ia.Cmp(ib)
 }
 
+// Eq returns a == b.
+func (a Float128) Eq(b Float128) bool {
+	if a.IsNaN() || b.IsNaN() {
+		return false
+	}
+	if a == b {
+		// a and b has same bit pattern
+		return true
+	}
+
+	// check -0 == 0
+	return (((a.h | b.h) &^ signMask128H) | (a.l | b.l)) == 0
+}
+
+// Ne returns a != b.
+func (a Float128) Ne(b Float128) bool {
+	return !a.Eq(b)
+}
+
 // Abs returns the absolute value of f.
 func (f Float128) Abs() Float128 {
 	return Float128{f.h &^ signMask128H, f.l}

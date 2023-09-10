@@ -514,3 +514,64 @@ func BenchmarkAdd(b *testing.B) {
 		runtime.KeepAlive(a.Add(b))
 	}
 }
+
+func TestComparison(t *testing.T) {
+	tests := []struct {
+		a, b                   Float128
+		eq, ne, lt, gt, le, ge bool
+	}{
+		{
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			true, false, false, false, true, true,
+		},
+		{
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x0000_0000_0000_0000, 0}, // 0
+			false, true, false, true, false, true,
+		},
+		{
+			Float128{0x0000_0000_0000_0000, 0}, // 0
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			false, true, true, false, true, false,
+		},
+		{
+			Float128{0x0000_0000_0000_0000, 0}, // +0
+			Float128{0x8000_0000_0000_0000, 0}, // -0
+			true, false, false, false, true, true,
+		},
+
+		// NaN
+		{
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x3fff_0000_0000_0000, 0},    // 1
+			false, true, false, false, false, false,
+		},
+	}
+
+	for _, tt := range tests {
+		eq := tt.a.Eq(tt.b)
+		if eq != tt.eq {
+			t.Errorf("%s == %s: got %t, want %t", dump(tt.a), dump(tt.b), eq, tt.eq)
+		}
+
+		ne := tt.a.Ne(tt.b)
+		if ne != tt.ne {
+			t.Errorf("%s != %s: got %t, want %t", dump(tt.a), dump(tt.b), ne, tt.ne)
+		}
+	}
+}
+
+//go:generate sh -c "perl scripts/f128_eq.pl | gofmt > f128_eq_test.go"
+
+func TestEq_TestFloat(t *testing.T) {
+	for _, tt := range f128Eq {
+		tt := tt
+		fa := tt.a
+		fb := tt.b
+		got := fa.Eq(fb)
+		if got != tt.want {
+			t.Errorf("%s == %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
+		}
+	}
+}
