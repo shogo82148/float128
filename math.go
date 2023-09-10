@@ -359,6 +359,22 @@ func (a Float128) Gt(b Float128) bool {
 	return b.Lt(a)
 }
 
+// Le returns a <= b.
+func (a Float128) Le(b Float128) bool {
+	if a.IsNaN() || b.IsNaN() {
+		return false
+	}
+
+	ia := a.comparable()
+	ib := b.comparable()
+	return ia.Cmp(ib) <= 0
+}
+
+// Ge returns a >= b.
+func (a Float128) Ge(b Float128) bool {
+	return b.Le(a)
+}
+
 // Abs returns the absolute value of f.
 func (f Float128) Abs() Float128 {
 	return Float128{f.h &^ signMask128H, f.l}
