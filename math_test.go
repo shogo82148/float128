@@ -559,6 +559,16 @@ func TestComparison(t *testing.T) {
 		if ne != tt.ne {
 			t.Errorf("%s != %s: got %t, want %t", dump(tt.a), dump(tt.b), ne, tt.ne)
 		}
+
+		lt := tt.a.Lt(tt.b)
+		if lt != tt.lt {
+			t.Errorf("%s < %s: got %t, want %t", dump(tt.a), dump(tt.b), lt, tt.lt)
+		}
+
+		gt := tt.a.Gt(tt.b)
+		if gt != tt.gt {
+			t.Errorf("%s > %s: got %t, want %t", dump(tt.a), dump(tt.b), gt, tt.gt)
+		}
 	}
 }
 
@@ -572,6 +582,20 @@ func TestEq_TestFloat(t *testing.T) {
 		got := fa.Eq(fb)
 		if got != tt.want {
 			t.Errorf("%s == %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
+		}
+	}
+}
+
+//go:generate sh -c "perl scripts/f128_lt.pl | gofmt > f128_lt_test.go"
+
+func TestLt_TestFloat(t *testing.T) {
+	for _, tt := range f128Lt {
+		tt := tt
+		fa := tt.a
+		fb := tt.b
+		got := fa.Lt(fb)
+		if got != tt.want {
+			t.Errorf("%s < %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
 		}
 	}
 }
