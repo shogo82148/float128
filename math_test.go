@@ -596,6 +596,14 @@ func TestEq_TestFloat(t *testing.T) {
 	}
 }
 
+func BenchmarkEq(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		a, b := r.Float128Pair()
+		runtime.KeepAlive(a.Eq(b))
+	}
+}
+
 //go:generate sh -c "perl scripts/f128_lt.pl | gofmt > f128_lt_test.go"
 
 func TestLt_TestFloat(t *testing.T) {
@@ -610,6 +618,14 @@ func TestLt_TestFloat(t *testing.T) {
 	}
 }
 
+func BenchmarkLt(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		a, b := r.Float128Pair()
+		runtime.KeepAlive(a.Lt(b))
+	}
+}
+
 //go:generate sh -c "perl scripts/f128_le.pl | gofmt > f128_le_test.go"
 
 func TestLe_TestFloat(t *testing.T) {
@@ -621,5 +637,13 @@ func TestLe_TestFloat(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("%s <= %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
 		}
+	}
+}
+
+func BenchmarkLe(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		a, b := r.Float128Pair()
+		runtime.KeepAlive(a.Le(b))
 	}
 }
