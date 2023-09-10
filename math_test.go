@@ -219,6 +219,13 @@ func TestQuo(t *testing.T) {
 			Float128{0x7fff_0000_0000_0000, 0}, // +Inf
 		},
 
+		// anything / Inf
+		{
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x7fff_0000_0000_0000, 0}, // +Inf
+			Float128{0x0000_0000_0000_0000, 0}, // +0
+		},
+
 		// NaN / anything => NaN
 		{
 			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN

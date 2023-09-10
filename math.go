@@ -116,6 +116,24 @@ func (a Float128) Quo(b Float128) Float128 {
 	signA, expA, fracA := a.split()
 	signB, expB, fracB := b.split()
 
+	if expA == mask128-bias128 {
+		// NaN check is done above; a is ±Inf
+		if expB == mask128-bias128 {
+			// +Inf / ±Inf = NaN
+			// -Inf / ±Inf = NaN
+			return nan
+		} else {
+			// ±Inf / finite = ±Inf
+			return Float128{a.h ^ signB, a.l}
+		}
+	}
+	if expB == mask128-bias128 {
+		// NaN check is done above; b is ±Inf
+		// NaN and Inf checks are done above; a is finite
+		// finite / ±Inf = ±0
+		return Float128{signA ^ signB, 0}
+	}
+
 	sign := signA ^ signB
 	exp := expA - expB
 	if fracA.Cmp(fracB) < 0 {
