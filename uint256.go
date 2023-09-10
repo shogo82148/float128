@@ -194,29 +194,6 @@ func (x uint256) divMod128(y int128.Uint128) (div uint256, mod int128.Uint128) {
 	return
 }
 
-func (x uint256) cmp(y uint256) int {
-	switch {
-	case x.a > y.a:
-		return 1
-	case x.a < y.a:
-		return -1
-	case x.b > y.b:
-		return 1
-	case x.b < y.b:
-		return -1
-	case x.c > y.c:
-		return 1
-	case x.c < y.c:
-		return -1
-	case x.d > y.d:
-		return 1
-	case x.d < y.d:
-		return -1
-	default:
-		return 0
-	}
-}
-
 func (x uint256) GoString() string {
 	return fmt.Sprintf("0x%016x_%016x_%016x_%016x", x.a, x.b, x.c, x.d)
 }
