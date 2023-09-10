@@ -129,6 +129,11 @@ func (x uint256) isZero() bool {
 	return (x.a | x.b | x.c | x.d) == 0
 }
 
+// fast version of x << 64
+func uint128Rsh64(x int128.Uint128) int128.Uint128 {
+	return int128.Uint128{H: x.L, L: 0}
+}
+
 func (x uint256) divMod128(y int128.Uint128) (div uint256, mod int128.Uint128) {
 	if (y.H | y.L) == 0 {
 		panic("division by zero")
@@ -168,7 +173,7 @@ func (x uint256) divMod128(y int128.Uint128) (div uint256, mod int128.Uint128) {
 	q1 := un64.Div(yn1)
 	r = un64.Sub(q1.Mul(yn1))
 
-	for q1.Cmp(two64) >= 0 || q1.Mul(yn0).Cmp(r.Mul(two64).Add(un1)) > 0 {
+	for q1.Cmp(two64) >= 0 || q1.Mul(yn0).Cmp(uint128Rsh64(r).Add(un1)) > 0 {
 		q1 = q1.Sub(one)
 		r = r.Add(yn1)
 		if r.Cmp(two64) >= 0 {
@@ -177,10 +182,10 @@ func (x uint256) divMod128(y int128.Uint128) (div uint256, mod int128.Uint128) {
 	}
 
 	// last 64-bits
-	un21 := un64.Mul(two64).Add(un1).Sub(q1.Mul(y))
+	un21 := uint128Rsh64(un64).Add(un1).Sub(q1.Mul(y))
 	q0 := un21.Div(yn1)
 	r = un21.Sub(q0.Mul(yn1))
-	for q0.Cmp(two64) >= 0 || q0.Mul(yn0).Cmp(r.Mul(two64).Add(un0)) > 0 {
+	for q0.Cmp(two64) >= 0 || q0.Mul(yn0).Cmp(uint128Rsh64(r).Add(un0)) > 0 {
 		q0 = q0.Sub(one)
 		r = r.Add(yn1)
 		if r.Cmp(two64) >= 0 {
@@ -188,9 +193,9 @@ func (x uint256) divMod128(y int128.Uint128) (div uint256, mod int128.Uint128) {
 		}
 	}
 
-	q = q1.Mul(two64).Add(q0)
+	q = uint128Rsh64(q1).Add(q0)
 	div.c, div.d = q.H, q.L
-	mod = un21.Mul(two64).Add(un0).Sub(q0.Mul(y)).Rsh(n)
+	mod = uint128Rsh64(un21).Add(un0).Sub(q0.Mul(y)).Rsh(n)
 	return
 }
 
