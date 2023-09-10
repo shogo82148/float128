@@ -219,6 +219,18 @@ func TestQuo(t *testing.T) {
 			Float128{0x7fff_0000_0000_0000, 0}, // +Inf
 		},
 
+		// 0 / anything => 0
+		{
+			Float128{0x0000_0000_0000_0000, 0}, // +0
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x0000_0000_0000_0000, 0}, // +0
+		},
+		{
+			Float128{0x8000_0000_0000_0000, 0}, // -0
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x8000_0000_0000_0000, 0}, // -0
+		},
+
 		// anything / Inf
 		{
 			Float128{0x3fff_0000_0000_0000, 0}, // 1
@@ -243,6 +255,17 @@ func TestQuo(t *testing.T) {
 			Float128{0x3fff_0000_0000_0000, 0},    // 1
 			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
 			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+		},
+
+		{
+			Float128{0x4001e94284905f1d, 0xa44c3a217be5490c}, // +0x1.e94284905f1da44c3a217be5490cp+2
+			Float128{0xc08000003fffffff, 0xfffffeffffffffff}, // 0x1.00003ffffffffffffeffffffffffp+129
+			Float128{0xbf80e9420a3fdc8d, 0xad28d0c089bf667b}, // -0x1.e9420a3fdc8dad28d0c089bf667bp-127
+		},
+		{
+			Float128{0x0001007fffffffff, 0xffefffffffffffff}, // +0x1.007fffffffffffefffffffffffffp-16382
+			Float128{0x4000fffffffc0000, 0x0000000000040000}, // +0x1.fffffffc00000000000000040000p+1
+			Float128{0x000040200000803f, 0xfffd007ffff980c0}, // +0x0.40200000803ffffd007ffff980c0p-16382
 		},
 	}
 
@@ -273,6 +296,14 @@ func TestQuo_TestFloat(t *testing.T) {
 				t.Errorf("%s / %s: got %s, want %s", dump(fa), dump(fb), dump(got), dump(tt.want))
 			}
 		}()
+	}
+}
+
+func BenchmarkQuo(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		a, b := r.Float128Pair()
+		runtime.KeepAlive(a.Quo(b))
 	}
 }
 

@@ -4,11 +4,15 @@ import (
 	"github.com/shogo82148/int128"
 )
 
-func squash(x uint64) uint64 {
+func squash64(x uint64) uint64 {
 	if x == 0 {
 		return 0
 	}
 	return 1
+}
+
+func squash128(x int128.Uint128) uint64 {
+	return squash64(x.H | x.L)
 }
 
 func (f Float128) split() (sign uint64, exp int32, frac int128.Uint128) {
@@ -68,7 +72,7 @@ func (a Float128) Mul(b Float128) Float128 {
 
 	exp := expA + expB
 	frac256 := mul128(fracA, fracB)
-	frac := int128.Uint128{H: frac256.a, L: frac256.b | squash(frac256.c) | squash(frac256.d)}
+	frac := int128.Uint128{H: frac256.a, L: frac256.b | squash64(frac256.c) | squash64(frac256.d)}
 	shift := int32(frac.Len()) - (shift128 + 1 + 2)
 	exp += shift
 	if exp < -(bias128 + shift128) {
@@ -112,6 +116,10 @@ func (a Float128) Quo(b Float128) Float128 {
 		// ±a / ±0 = ±Inf
 		return Float128{((a.h ^ b.h) & signMask128H) | inf.h, inf.l}
 	}
+	if a.isZero() {
+		// ±0 / b = ±0
+		return Float128{((a.h ^ b.h) & signMask128H), 0}
+	}
 
 	signA, expA, fracA := a.split()
 	signB, expB, fracB := b.split()
@@ -142,7 +150,13 @@ func (a Float128) Quo(b Float128) Float128 {
 	}
 
 	fracA256 := uint256{a: fracA.H, b: fracA.L, c: 0, d: 0}
-	frac256, _ := fracA256.divMod128(fracB)
+	frac256, mod := fracA256.divMod128(fracB)
+	frac256.d |= squash128(mod)
+
+	// log.Printf("fracA256: %#v", fracA256)
+	// log.Printf("   fracB: %#v", fracB)
+	// log.Printf(" frac256: %#v", frac256)
+	// log.Printf("     mod: %#v", mod)
 
 	if exp < -(bias128 + shift128) {
 		// underflow
@@ -150,6 +164,9 @@ func (a Float128) Quo(b Float128) Float128 {
 	} else if exp <= -bias128 {
 		// the result is subnormal
 		shift := uint(1 - (exp + bias128))
+		ff := uint256{d: 1}.lsh(uint(shift) + 16 - 1).sub(uint256{d: 1})
+		ff = ff.add(frac256.rsh(uint(shift) + 16).and(uint256{d: 1}))
+		frac256 = frac256.add(ff) // round to nearest even
 		frac256 = frac256.rsh(uint(shift) + 16)
 		// log.Printf("%#v", frac256)
 		return Float128{sign | frac256.c, frac256.d}
@@ -158,6 +175,7 @@ func (a Float128) Quo(b Float128) Float128 {
 		return Float128{sign | inf.h, inf.l}
 	}
 
+	frac256 = frac256.add(uint256{d: 0x7fff}).add(frac256.rsh(16).and(uint256{d: 1})) // round to nearest even
 	frac256 = frac256.rsh(16)
 	// log.Printf("%#v", frac256)
 	exp += bias128

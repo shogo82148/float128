@@ -42,47 +42,47 @@ func mul128(x, y int128.Uint128) uint256 {
 	return uint256{a, b, c, d}
 }
 
-func (x uint256) mul128(y int128.Uint128) uint256 {
-	h1, l1 := bits.Mul64(x.d, y.L)
-	h2, l2 := bits.Mul64(x.c, y.L)
-	h3, l3 := bits.Mul64(x.b, y.L)
-	_, l4 := bits.Mul64(x.a, y.L)
+// func (x uint256) mul128(y int128.Uint128) uint256 {
+// 	h1, l1 := bits.Mul64(x.d, y.L)
+// 	h2, l2 := bits.Mul64(x.c, y.L)
+// 	h3, l3 := bits.Mul64(x.b, y.L)
+// 	_, l4 := bits.Mul64(x.a, y.L)
 
-	h5, l5 := bits.Mul64(x.d, y.H)
-	h6, l6 := bits.Mul64(x.c, y.H)
-	_, l7 := bits.Mul64(x.b, y.H)
+// 	h5, l5 := bits.Mul64(x.d, y.H)
+// 	h6, l6 := bits.Mul64(x.c, y.H)
+// 	_, l7 := bits.Mul64(x.b, y.H)
 
-	//     x.a  x.b  x.c  x.d
-	//               y.H  y.L
-	//     ------------------
-	//                h1   l1
-	//           h2   l2
-	//      h3   l3
-	//      l4
-	//           h5   l5
-	//      h6   l6
-	//      l7
-	//-----------------------
-	//       a    b    c    d
+// 	//     x.a  x.b  x.c  x.d
+// 	//               y.H  y.L
+// 	//     ------------------
+// 	//                h1   l1
+// 	//           h2   l2
+// 	//      h3   l3
+// 	//      l4
+// 	//           h5   l5
+// 	//      h6   l6
+// 	//      l7
+// 	//-----------------------
+// 	//       a    b    c    d
 
-	a := h3
-	b := h2
-	c := h1
-	d := l1
+// 	a := h3
+// 	b := h2
+// 	c := h1
+// 	d := l1
 
-	var carry uint64
-	c, carry = bits.Add64(c, l2, 0)
-	b, carry = bits.Add64(b, l3, carry)
-	a, _ = bits.Add64(a, l4, carry)
+// 	var carry uint64
+// 	c, carry = bits.Add64(c, l2, 0)
+// 	b, carry = bits.Add64(b, l3, carry)
+// 	a, _ = bits.Add64(a, l4, carry)
 
-	c, carry = bits.Add64(c, l5, 0)
-	b, carry = bits.Add64(b, l6, carry)
-	a, _ = bits.Add64(a, l7, carry)
+// 	c, carry = bits.Add64(c, l5, 0)
+// 	b, carry = bits.Add64(b, l6, carry)
+// 	a, _ = bits.Add64(a, l7, carry)
 
-	b, carry = bits.Add64(b, h5, 0)
-	a, _ = bits.Add64(a, h6, carry)
-	return uint256{a, b, c, d}
-}
+// 	b, carry = bits.Add64(b, h5, 0)
+// 	a, _ = bits.Add64(a, h6, carry)
+// 	return uint256{a, b, c, d}
+// }
 
 func (x uint256) add(y uint256) uint256 {
 	var carry uint64
@@ -188,30 +188,42 @@ func (x uint256) divMod128(y int128.Uint128) (div uint256, mod int128.Uint128) {
 		return
 	}
 
+	// TODO: use a faster algorithm
 	n := bits.LeadingZeros64(y.H)
-	x2 := x.rsh(1)
-	y2 := y.Lsh(uint(n))
-
-	div.a = x2.a / y2.H
-	q, r := bits.Div64(x2.a%y2.H, x2.b, y2.H)
-	div.b = q
-	q, r = bits.Div64(r, x2.c, y2.H)
-	div.c = q
-	q, _ = bits.Div64(r, x2.d, y2.H)
-	div.d = q
-	div = div.rsh(uint(63 - n))
-	if !div.isZero() {
-		div = div.sub(uint256{0, 0, 0, 1})
+	y256 := uint256{y.H, y.L, 0, 0}.lsh(uint(n))
+	for i := n + 128; i >= 0; i-- {
+		div = div.lsh(1)
+		if x.cmp(y256) >= 0 {
+			x = x.sub(y256)
+			div.d |= 1
+		}
+		y256 = y256.rsh(1)
 	}
-
-	z := div.mul128(y)
-	mod256 := x.sub(z)
-	mod = int128.Uint128{H: mod256.c, L: mod256.d}
-	if mod.Cmp(y) >= 0 {
-		div = div.add(uint256{0, 0, 0, 1})
-		mod = mod.Sub(y)
-	}
+	mod = int128.Uint128{H: x.c, L: x.d}
 	return
+}
+
+func (x uint256) cmp(y uint256) int {
+	switch {
+	case x.a > y.a:
+		return 1
+	case x.a < y.a:
+		return -1
+	case x.b > y.b:
+		return 1
+	case x.b < y.b:
+		return -1
+	case x.c > y.c:
+		return 1
+	case x.c < y.c:
+		return -1
+	case x.d > y.d:
+		return 1
+	case x.d < y.d:
+		return -1
+	default:
+		return 0
+	}
 }
 
 func (x uint256) GoString() string {
