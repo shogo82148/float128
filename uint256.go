@@ -42,48 +42,6 @@ func mul128(x, y int128.Uint128) uint256 {
 	return uint256{a, b, c, d}
 }
 
-// func (x uint256) mul128(y int128.Uint128) uint256 {
-// 	h1, l1 := bits.Mul64(x.d, y.L)
-// 	h2, l2 := bits.Mul64(x.c, y.L)
-// 	h3, l3 := bits.Mul64(x.b, y.L)
-// 	_, l4 := bits.Mul64(x.a, y.L)
-
-// 	h5, l5 := bits.Mul64(x.d, y.H)
-// 	h6, l6 := bits.Mul64(x.c, y.H)
-// 	_, l7 := bits.Mul64(x.b, y.H)
-
-// 	//     x.a  x.b  x.c  x.d
-// 	//               y.H  y.L
-// 	//     ------------------
-// 	//                h1   l1
-// 	//           h2   l2
-// 	//      h3   l3
-// 	//      l4
-// 	//           h5   l5
-// 	//      h6   l6
-// 	//      l7
-// 	//-----------------------
-// 	//       a    b    c    d
-
-// 	a := h3
-// 	b := h2
-// 	c := h1
-// 	d := l1
-
-// 	var carry uint64
-// 	c, carry = bits.Add64(c, l2, 0)
-// 	b, carry = bits.Add64(b, l3, carry)
-// 	a, _ = bits.Add64(a, l4, carry)
-
-// 	c, carry = bits.Add64(c, l5, 0)
-// 	b, carry = bits.Add64(b, l6, carry)
-// 	a, _ = bits.Add64(a, l7, carry)
-
-// 	b, carry = bits.Add64(b, h5, 0)
-// 	a, _ = bits.Add64(a, h6, carry)
-// 	return uint256{a, b, c, d}
-// }
-
 func (x uint256) add(y uint256) uint256 {
 	var carry uint64
 	x.d, carry = bits.Add64(x.d, y.d, 0)
@@ -176,7 +134,7 @@ func (x uint256) divMod128(y int128.Uint128) (div uint256, mod int128.Uint128) {
 		panic("division by zero")
 	}
 	if y.H == 0 {
-		// fast path for uint256 / uint64
+		// we can directly calculate uint256 / uint64
 		div.a = x.a / y.L
 		q, r := bits.Div64(x.a%y.L, x.b, y.L)
 		div.b = q
@@ -188,18 +146,51 @@ func (x uint256) divMod128(y int128.Uint128) (div uint256, mod int128.Uint128) {
 		return
 	}
 
-	// TODO: use a faster algorithm
-	n := bits.LeadingZeros64(y.H)
-	y256 := uint256{y.H, y.L, 0, 0}.lsh(uint(n))
-	for i := n + 128; i >= 0; i-- {
-		div = div.lsh(1)
-		if x.cmp(y256) >= 0 {
-			x = x.sub(y256)
-			div.d |= 1
+	// calculate the high 128-bits of div.
+	q, r := int128.Uint128{H: x.a, L: x.b}.DivMod(y)
+	div.a, div.b = q.H, q.L
+	x.a, x.b = r.H, r.L
+
+	n := uint(y.LeadingZeros())
+	y = y.Lsh(n)
+
+	// next 64-bits
+	one := int128.Uint128{L: 1}
+	two64 := int128.Uint128{H: 1}
+
+	yn1 := int128.Uint128{L: y.H}
+	yn0 := int128.Uint128{L: y.L}
+	xn := x.lsh(n)
+	un64 := int128.Uint128{H: xn.a, L: xn.b}
+	un1 := int128.Uint128{L: xn.c}
+	un0 := int128.Uint128{L: xn.d}
+
+	q1 := un64.Div(yn1)
+	r = un64.Sub(q1.Mul(yn1))
+
+	for q1.Cmp(two64) >= 0 || q1.Mul(yn0).Cmp(r.Mul(two64).Add(un1)) > 0 {
+		q1 = q1.Sub(one)
+		r = r.Add(yn1)
+		if r.Cmp(two64) >= 0 {
+			break
 		}
-		y256 = y256.rsh(1)
 	}
-	mod = int128.Uint128{H: x.c, L: x.d}
+
+	// last 64-bits
+	un21 := un64.Mul(two64).Add(un1).Sub(q1.Mul(y))
+	q0 := un21.Div(yn1)
+	r = un21.Sub(q0.Mul(yn1))
+	for q0.Cmp(two64) >= 0 || q0.Mul(yn0).Cmp(r.Mul(two64).Add(un0)) > 0 {
+		q0 = q0.Sub(one)
+		r = r.Add(yn1)
+		if r.Cmp(two64) >= 0 {
+			break
+		}
+	}
+
+	q = q1.Mul(two64).Add(q0)
+	div.c, div.d = q.H, q.L
+	mod = un21.Mul(two64).Add(un0).Sub(q0.Mul(y)).Rsh(n)
 	return
 }
 
