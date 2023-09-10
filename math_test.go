@@ -170,6 +170,25 @@ func TestQuo(t *testing.T) {
 			Float128{0x4000_8000_0000_0000, 0},
 			Float128{0x3ffd_5555_5555_5555, 0x5555_5555_5555_5555},
 		},
+
+		// NaN / anything => NaN
+		{
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+		},
+		{
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x3fff_0000_0000_0000, 0},    // 1
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+		},
+
+		// anything / NaN => NaN
+		{
+			Float128{0x3fff_0000_0000_0000, 0},    // 1
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+		},
 	}
 
 	for _, tt := range tests {
