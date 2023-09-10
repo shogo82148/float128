@@ -186,6 +186,13 @@ func TestQuo(t *testing.T) {
 			Float128{0, 0},                                         // 0
 		},
 
+		// overflow
+		{
+			Float128{0x7ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest normal number
+			Float128{0x3ffe_0000_0000_0000, 0x0000_0000_0000_0000}, // 0.5
+			Float128{0x7fff_0000_0000_0000, 0x0000_0000_0000_0000}, // +Inf
+		},
+
 		// NaN / anything => NaN
 		{
 			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN

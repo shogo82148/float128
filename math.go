@@ -128,6 +128,9 @@ func (a Float128) Quo(b Float128) Float128 {
 		frac256 = frac256.rsh(uint(shift) + 16)
 		// log.Printf("%#v", frac256)
 		return Float128{sign | frac256.c, frac256.d}
+	} else if exp >= mask128-bias128 {
+		// overflow
+		return Float128{sign | inf.h, inf.l}
 	}
 
 	frac256 = frac256.rsh(16)
