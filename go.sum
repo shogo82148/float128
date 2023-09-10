@@ -1,2 +1,6 @@
 github.com/shogo82148/int128 v0.0.0-20230429164251-dc64d63aba8b h1:fVYRXnWsR1SRQnsSodGZI/JVlAx1Xyyua1mku4Lnr9E=
 github.com/shogo82148/int128 v0.0.0-20230429164251-dc64d63aba8b/go.mod h1:piOmnBaUvAz9m7x71/YcU8HgDQTw81u8brBwWzOxtI4=
+github.com/shogo82148/int128 v0.1.0 h1:7TsZx9CfS/pZEDJ5He65A25l0fjK+sSLVH/90MFCOQM=
+github.com/shogo82148/int128 v0.1.0/go.mod h1:piOmnBaUvAz9m7x71/YcU8HgDQTw81u8brBwWzOxtI4=
+github.com/shogo82148/int128 v0.1.1 h1:DWRS29SDGhnicfuwHsjNX9GmEApPkeoT0p0dWTB5GCo=
+github.com/shogo82148/int128 v0.1.1/go.mod h1:piOmnBaUvAz9m7x71/YcU8HgDQTw81u8brBwWzOxtI4=
