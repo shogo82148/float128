@@ -146,6 +146,167 @@ func BenchmarkMul(b *testing.B) {
 	}
 }
 
+func TestQuo(t *testing.T) {
+	tests := []struct {
+		a, b Float128
+		want Float128
+	}{
+		// normal number / normal number
+		{
+			// 1 / 1 = 1
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x3fff_0000_0000_0000, 0},
+		},
+		{
+			// 1 / 2 = 0.5
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x4000_0000_0000_0000, 0},
+			Float128{0x3ffe_0000_0000_0000, 0},
+		},
+		{
+			// 1 / 3
+			Float128{0x3fff_0000_0000_0000, 0},
+			Float128{0x4000_8000_0000_0000, 0},
+			Float128{0x3ffd_5555_5555_5555, 0x5555_5555_5555_5555},
+		},
+
+		// the result is subnormal
+		{
+			// 2⁻¹⁶³⁸² / 2 = 2⁻¹⁶³⁸³
+			Float128{0x0001_0000_0000_0000, 0}, // smallest positive normal number
+			Float128{0x4000_0000_0000_0000, 0}, // 2
+			Float128{0x0000_8000_0000_0000, 0}, // 2⁻¹⁶³⁸³
+		},
+
+		// underflow
+		{
+			Float128{0x0000_0000_0000_0000, 0x0000_0000_0000_0001}, // smallest positive subnormal number
+			Float128{0x4000_0000_0000_0000, 0},                     // 2
+			Float128{0, 0},                                         // 0
+		},
+
+		// overflow
+		{
+			Float128{0x7ffe_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}, // largest normal number
+			Float128{0x3ffe_0000_0000_0000, 0x0000_0000_0000_0000}, // 0.5
+			Float128{0x7fff_0000_0000_0000, 0x0000_0000_0000_0000}, // +Inf
+		},
+
+		// anything / 0
+		{
+			// +1 / +0 => +Inf
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x0000_0000_0000_0000, 0}, // +0
+			Float128{0x7fff_0000_0000_0000, 0}, // +Inf
+		},
+		{
+			// +1 / -0 => +Inf
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x8000_0000_0000_0000, 0}, // -0
+			Float128{0xffff_0000_0000_0000, 0}, // -Inf
+		},
+		{
+			// -1 / +0 => +Inf
+			Float128{0xbfff_0000_0000_0000, 0}, // -1
+			Float128{0x0000_0000_0000_0000, 0}, // +0
+			Float128{0xffff_0000_0000_0000, 0}, // -Inf
+		},
+		{
+			// -1 / -0 => +Inf
+			Float128{0xbfff_0000_0000_0000, 0}, // -1
+			Float128{0x8000_0000_0000_0000, 0}, // -0
+			Float128{0x7fff_0000_0000_0000, 0}, // +Inf
+		},
+
+		// 0 / anything => 0
+		{
+			Float128{0x0000_0000_0000_0000, 0}, // +0
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x0000_0000_0000_0000, 0}, // +0
+		},
+		{
+			Float128{0x8000_0000_0000_0000, 0}, // -0
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x8000_0000_0000_0000, 0}, // -0
+		},
+
+		// anything / Inf
+		{
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x7fff_0000_0000_0000, 0}, // +Inf
+			Float128{0x0000_0000_0000_0000, 0}, // +0
+		},
+
+		// NaN / anything => NaN
+		{
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+		},
+		{
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x3fff_0000_0000_0000, 0},    // 1
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+		},
+
+		// anything / NaN => NaN
+		{
+			Float128{0x3fff_0000_0000_0000, 0},    // 1
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+		},
+
+		{
+			Float128{0x4001e94284905f1d, 0xa44c3a217be5490c}, // +0x1.e94284905f1da44c3a217be5490cp+2
+			Float128{0xc08000003fffffff, 0xfffffeffffffffff}, // 0x1.00003ffffffffffffeffffffffffp+129
+			Float128{0xbf80e9420a3fdc8d, 0xad28d0c089bf667b}, // -0x1.e9420a3fdc8dad28d0c089bf667bp-127
+		},
+		{
+			Float128{0x0001007fffffffff, 0xffefffffffffffff}, // +0x1.007fffffffffffefffffffffffffp-16382
+			Float128{0x4000fffffffc0000, 0x0000000000040000}, // +0x1.fffffffc00000000000000040000p+1
+			Float128{0x000040200000803f, 0xfffd007ffff980c0}, // +0x0.40200000803ffffd007ffff980c0p-16382
+		},
+	}
+
+	for _, tt := range tests {
+		got := tt.a.Quo(tt.b)
+		if got != tt.want {
+			t.Errorf("%s / %s: got %s, want %s", dump(tt.a), dump(tt.b), dump(got), dump(tt.want))
+		}
+	}
+}
+
+//go:generate sh -c "perl scripts/f128_div.pl | gofmt > f128_div_test.go"
+
+func TestQuo_TestFloat(t *testing.T) {
+	for _, tt := range f128Div {
+		tt := tt
+		fa := tt.a
+		fb := tt.b
+		func() {
+			defer func() {
+				err := recover()
+				if err != nil {
+					t.Errorf("%s / %s: want %s, panic %#v", dump(fa), dump(fb), dump(tt.want), err)
+				}
+			}()
+			got := fa.Quo(fb)
+			if got != tt.want {
+				t.Errorf("%s / %s: got %s, want %s", dump(fa), dump(fb), dump(got), dump(tt.want))
+			}
+		}()
+	}
+}
+
+func BenchmarkQuo(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		a, b := r.Float128Pair()
+		runtime.KeepAlive(a.Quo(b))
+	}
+}
+
 func TestAdd(t *testing.T) {
 	tests := []struct {
 		a, b Float128
