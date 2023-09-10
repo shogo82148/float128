@@ -514,3 +514,136 @@ func BenchmarkAdd(b *testing.B) {
 		runtime.KeepAlive(a.Add(b))
 	}
 }
+
+func TestComparison(t *testing.T) {
+	tests := []struct {
+		a, b                   Float128
+		eq, ne, lt, gt, le, ge bool
+	}{
+		{
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			true, false, false, false, true, true,
+		},
+		{
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x0000_0000_0000_0000, 0}, // 0
+			false, true, false, true, false, true,
+		},
+		{
+			Float128{0x0000_0000_0000_0000, 0}, // 0
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			false, true, true, false, true, false,
+		},
+		{
+			Float128{0x0000_0000_0000_0000, 0}, // +0
+			Float128{0x8000_0000_0000_0000, 0}, // -0
+			true, false, false, false, true, true,
+		},
+
+		// NaN
+		{
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x3fff_0000_0000_0000, 0},    // 1
+			false, true, false, false, false, false,
+		},
+	}
+
+	for _, tt := range tests {
+		eq := tt.a.Eq(tt.b)
+		if eq != tt.eq {
+			t.Errorf("%s == %s: got %t, want %t", dump(tt.a), dump(tt.b), eq, tt.eq)
+		}
+
+		ne := tt.a.Ne(tt.b)
+		if ne != tt.ne {
+			t.Errorf("%s != %s: got %t, want %t", dump(tt.a), dump(tt.b), ne, tt.ne)
+		}
+
+		lt := tt.a.Lt(tt.b)
+		if lt != tt.lt {
+			t.Errorf("%s < %s: got %t, want %t", dump(tt.a), dump(tt.b), lt, tt.lt)
+		}
+
+		gt := tt.a.Gt(tt.b)
+		if gt != tt.gt {
+			t.Errorf("%s > %s: got %t, want %t", dump(tt.a), dump(tt.b), gt, tt.gt)
+		}
+
+		le := tt.a.Le(tt.b)
+		if le != tt.le {
+			t.Errorf("%s <= %s: got %t, want %t", dump(tt.a), dump(tt.b), le, tt.le)
+		}
+
+		ge := tt.a.Ge(tt.b)
+		if ge != tt.ge {
+			t.Errorf("%s >= %s: got %t, want %t", dump(tt.a), dump(tt.b), ge, tt.ge)
+		}
+	}
+}
+
+//go:generate sh -c "perl scripts/f128_eq.pl | gofmt > f128_eq_test.go"
+
+func TestEq_TestFloat(t *testing.T) {
+	for _, tt := range f128Eq {
+		tt := tt
+		fa := tt.a
+		fb := tt.b
+		got := fa.Eq(fb)
+		if got != tt.want {
+			t.Errorf("%s == %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
+		}
+	}
+}
+
+func BenchmarkEq(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		a, b := r.Float128Pair()
+		runtime.KeepAlive(a.Eq(b))
+	}
+}
+
+//go:generate sh -c "perl scripts/f128_lt.pl | gofmt > f128_lt_test.go"
+
+func TestLt_TestFloat(t *testing.T) {
+	for _, tt := range f128Lt {
+		tt := tt
+		fa := tt.a
+		fb := tt.b
+		got := fa.Lt(fb)
+		if got != tt.want {
+			t.Errorf("%s < %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
+		}
+	}
+}
+
+func BenchmarkLt(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		a, b := r.Float128Pair()
+		runtime.KeepAlive(a.Lt(b))
+	}
+}
+
+//go:generate sh -c "perl scripts/f128_le.pl | gofmt > f128_le_test.go"
+
+func TestLe_TestFloat(t *testing.T) {
+	for _, tt := range f128Le {
+		tt := tt
+		fa := tt.a
+		fb := tt.b
+		got := fa.Le(fb)
+		if got != tt.want {
+			t.Errorf("%s <= %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
+		}
+	}
+}
+
+func BenchmarkLe(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		a, b := r.Float128Pair()
+		runtime.KeepAlive(a.Le(b))
+	}
+}

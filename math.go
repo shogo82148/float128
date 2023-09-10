@@ -311,13 +311,68 @@ func (a Float128) Compare(b Float128) int {
 		return 1
 	}
 
-	ia := int128.Int128{H: int64(a.h), L: a.l}
-	ia = ia.Xor(int128.Int128{H: int64(a.h) >> 63 & 0x7fff_ffff_ffff_ffff, L: uint64(int64(a.h) >> 63)})
-	ia = ia.Add(int128.Int128{L: a.h >> 63})
-	ib := int128.Int128{H: int64(b.h), L: b.l}
-	ib = ib.Xor(int128.Int128{H: int64(b.h) >> 63 & 0x7fff_ffff_ffff_ffff, L: uint64(int64(b.h) >> 63)})
-	ib = ib.Add(int128.Int128{L: b.h >> 63})
+	ia := a.comparable()
+	ib := b.comparable()
 	return ia.Cmp(ib)
+}
+
+// comparable returns a comparable format for a.
+func (a Float128) comparable() int128.Int128 {
+	i := int128.Int128{H: int64(a.h), L: a.l}
+	i = i.Xor(int128.Int128{H: int64(a.h) >> 63 & 0x7fff_ffff_ffff_ffff, L: uint64(int64(a.h) >> 63)})
+	i = i.Add(int128.Int128{L: a.h >> 63})
+	return i
+}
+
+// Eq returns a == b.
+func (a Float128) Eq(b Float128) bool {
+	if a.IsNaN() || b.IsNaN() {
+		return false
+	}
+	if a == b {
+		// a and b has same bit pattern
+		return true
+	}
+
+	// check -0 == 0
+	return (((a.h | b.h) &^ signMask128H) | (a.l | b.l)) == 0
+}
+
+// Ne returns a != b.
+func (a Float128) Ne(b Float128) bool {
+	return !a.Eq(b)
+}
+
+// Lt returns a < b.
+func (a Float128) Lt(b Float128) bool {
+	if a.IsNaN() || b.IsNaN() {
+		return false
+	}
+
+	ia := a.comparable()
+	ib := b.comparable()
+	return ia.Cmp(ib) < 0
+}
+
+// Gt returns a > b.
+func (a Float128) Gt(b Float128) bool {
+	return b.Lt(a)
+}
+
+// Le returns a <= b.
+func (a Float128) Le(b Float128) bool {
+	if a.IsNaN() || b.IsNaN() {
+		return false
+	}
+
+	ia := a.comparable()
+	ib := b.comparable()
+	return ia.Cmp(ib) <= 0
+}
+
+// Ge returns a >= b.
+func (a Float128) Ge(b Float128) bool {
+	return b.Le(a)
 }
 
 // Abs returns the absolute value of f.
