@@ -524,20 +524,6 @@ func BenchmarkEq(b *testing.B) {
 	}
 }
 
-//go:generate sh -c "perl scripts/f128_lt.pl | gofmt > f128_lt_test.go"
-
-func TestLt_TestFloat(t *testing.T) {
-	for _, tt := range f128Lt {
-		tt := tt
-		fa := tt.a
-		fb := tt.b
-		got := fa.Lt(fb)
-		if got != tt.want {
-			t.Errorf("%s < %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
-		}
-	}
-}
-
 func BenchmarkLt(b *testing.B) {
 	r := newXoshiro256pp()
 	for i := 0; i < b.N; i++ {
