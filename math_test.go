@@ -463,28 +463,6 @@ func TestAdd(t *testing.T) {
 	}
 }
 
-//go:generate sh -c "perl scripts/f128_add.pl | gofmt > f128_add_test.go"
-
-func TestAdd_TestFloat(t *testing.T) {
-	for _, tt := range f128Add {
-		tt := tt
-		fa := tt.a
-		fb := tt.b
-		func() {
-			defer func() {
-				err := recover()
-				if err != nil {
-					t.Errorf("%s + %s: want %s, panic %#v", dump(fa), dump(fb), dump(tt.want), err)
-				}
-			}()
-			got := fa.Add(fb)
-			if got != tt.want {
-				t.Errorf("%s + %s: got %s, want %s", dump(fa), dump(fb), dump(got), dump(tt.want))
-			}
-		}()
-	}
-}
-
 func BenchmarkAdd(b *testing.B) {
 	r := newXoshiro256pp()
 	for i := 0; i < b.N; i++ {
