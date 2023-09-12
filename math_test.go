@@ -546,20 +546,6 @@ func BenchmarkLt(b *testing.B) {
 	}
 }
 
-//go:generate sh -c "perl scripts/f128_le.pl | gofmt > f128_le_test.go"
-
-func TestLe_TestFloat(t *testing.T) {
-	for _, tt := range f128Le {
-		tt := tt
-		fa := tt.a
-		fb := tt.b
-		got := fa.Le(fb)
-		if got != tt.want {
-			t.Errorf("%s <= %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
-		}
-	}
-}
-
 func BenchmarkLe(b *testing.B) {
 	r := newXoshiro256pp()
 	for i := 0; i < b.N; i++ {

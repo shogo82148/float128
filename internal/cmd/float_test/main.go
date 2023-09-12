@@ -26,6 +26,8 @@ func main() {
 		f128_add()
 	case "f128_eq":
 		f128_eq()
+	case "f128_le":
+		f128_le()
 	}
 }
 
@@ -195,6 +197,30 @@ func f128_eq() {
 		}
 
 		got := a.Eq(b)
+		if got != c {
+			fmt.Printf("%s %s %t %t\n", dump(a), dump(b), c, got)
+			failed++
+		}
+	}
+	if failed > 0 {
+		fmt.Printf("%d tests failed\n", failed)
+		os.Exit(1)
+	}
+}
+
+func f128_le() {
+	var failed int64
+	s := bufio.NewScanner(os.Stdin)
+	for s.Scan() {
+		line := s.Text()
+		line = strings.TrimSpace(line)
+
+		a, b, c, err := parseFloat128x2Bool(line)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		got := a.Le(b)
 		if got != c {
 			fmt.Printf("%s %s %t %t\n", dump(a), dump(b), c, got)
 			failed++
