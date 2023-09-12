@@ -647,3 +647,32 @@ func BenchmarkLe(b *testing.B) {
 		runtime.KeepAlive(a.Le(b))
 	}
 }
+
+func TestFMA(t *testing.T) {
+	tests := []struct {
+		x, y, z Float128
+		want    Float128
+	}{
+		// NaN
+		{
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+		},
+
+		// 1 * 1 + 1 = 2
+		{
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x4000_0000_0000_0000, 0}, // 2
+		},
+	}
+	for _, tt := range tests {
+		got := FMA(tt.x, tt.y, tt.z)
+		if got != tt.want {
+			t.Errorf("%s * %s + %s: got %s, want %s", dump(tt.x), dump(tt.y), dump(tt.z), dump(got), dump(tt.want))
+		}
+	}
+}
