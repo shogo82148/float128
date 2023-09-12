@@ -20,6 +20,8 @@ func main() {
 		f64_to_f128()
 	case "f128_mul":
 		f128_mul()
+	case "f128_div":
+		f128_div()
 	case "f128_add":
 		f128_add()
 	}
@@ -110,6 +112,33 @@ func f128_mul() {
 		}
 
 		got := a.Mul(b)
+		if got.IsNaN() && c.IsNaN() {
+			continue
+		}
+		if got != c {
+			fmt.Printf("%s %s %s %s\n", dump(a), dump(b), dump(c), dump(got))
+			failed++
+		}
+	}
+	if failed > 0 {
+		fmt.Printf("%d tests failed\n", failed)
+		os.Exit(1)
+	}
+}
+
+func f128_div() {
+	var failed int64
+	s := bufio.NewScanner(os.Stdin)
+	for s.Scan() {
+		line := s.Text()
+		line = strings.TrimSpace(line)
+
+		a, b, c, err := parseFloat128x3(line)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		got := a.Quo(b)
 		if got.IsNaN() && c.IsNaN() {
 			continue
 		}
