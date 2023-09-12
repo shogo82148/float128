@@ -516,20 +516,6 @@ func TestComparison(t *testing.T) {
 	}
 }
 
-//go:generate sh -c "perl scripts/f128_eq.pl | gofmt > f128_eq_test.go"
-
-func TestEq_TestFloat(t *testing.T) {
-	for _, tt := range f128Eq {
-		tt := tt
-		fa := tt.a
-		fb := tt.b
-		got := fa.Eq(fb)
-		if got != tt.want {
-			t.Errorf("%s == %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
-		}
-	}
-}
-
 func BenchmarkEq(b *testing.B) {
 	r := newXoshiro256pp()
 	for i := 0; i < b.N; i++ {
