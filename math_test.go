@@ -676,6 +676,14 @@ func TestFMA(t *testing.T) {
 			Float128{0x3ffe_0000_0000_0000, 0}, // 0.5
 			Float128{0x3fff_8000_0000_0000, 0}, // 1.5
 		},
+
+		// 1 * 1 + (-0.5) = 0.5
+		{
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0xbffe_0000_0000_0000, 0}, // 0.5
+			Float128{0x3ffe_0000_0000_0000, 0}, // 0.5
+		},
 	}
 	for _, tt := range tests {
 		got := FMA(tt.x, tt.y, tt.z)
