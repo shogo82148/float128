@@ -437,8 +437,13 @@ func FMA(x, y, z Float128) Float128 {
 	exp := expA + expB
 	frac256 := mul128(fracA, fracB)
 	log.Printf(" frac256 = %#v", frac256)
-	frac256 = frac256.add(fracC256)
-	log.Printf(" frac256 = %#v", frac256)
+
+	// add c
+	if expC <= exp {
+		fracC256 = fracC256.rsh(uint(exp - expC))
+		frac256 = frac256.add(fracC256)
+		log.Printf(" frac256 = %#v", frac256)
+	}
 	frac := int128.Uint128{H: frac256.a, L: frac256.b | squash64(frac256.c) | squash64(frac256.d)}
 
 	// normalize
@@ -461,7 +466,7 @@ func FMA(x, y, z Float128) Float128 {
 	// frac256 = frac256.add(ff.rsh(uint(shift + margin)))
 	// shift = int32(frac256.leadingZeros() - 19)
 	// log.Printf(" frac256 = %#v << %d", frac256, shift+4)
-	frac256 = frac256.lsh(uint(shift + 2))
+	frac256 = frac256.rsh(uint(2 - shift))
 	log.Printf(" frac256 = %#v", frac256)
 
 	exp += bias128
@@ -471,6 +476,7 @@ func FMA(x, y, z Float128) Float128 {
 	}
 	_ = signC
 	_ = expC
+	log.Println()
 
 	return Float128{sign | uint64(exp)<<(shift128-64) | (frac256.a & fracMask128H), frac256.b}
 }
