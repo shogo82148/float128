@@ -393,8 +393,8 @@ func FMA(x, y, z Float128) Float128 {
 		return nan
 	}
 
-	// Inf or zero involved. At most one rounding will occur.
-	if x.isZero() || y.isZero() || z.isZero() || x.IsInf(0) || y.IsInf(0) {
+	// Inf involved. At most one rounding will occur.
+	if x.IsInf(0) || y.IsInf(0) {
 		return x.Mul(y).Add(z)
 	}
 	// Handle non-finite z separately. Evaluating x*y+z where
@@ -412,15 +412,31 @@ func FMA(x, y, z Float128) Float128 {
 	fracA = fracA.Lsh(4)
 	fracB = fracB.Lsh(4)
 	fracC256 := uint256{a: fracC.H, b: fracC.L, c: 0, d: 0}.rsh(8)
+	// log.Printf(" fracC256 = %#v", fracC256)
 
 	// calculate a * b
 	exp := expA + expB
 	frac256 := mul128(fracA, fracB)
 	// log.Printf("  frac256 = %#v", frac256)
+	if frac256.isZero() {
+		// +0 + ±0 = +0
+		// -0 + ±0 = ±0
+		if z.isZero() {
+			return Float128{sign & z.h, 0}
+		}
+
+		// ±0 + z = z
+		return z
+	}
 
 	// add c
 	if expC <= exp {
+		one := uint256{a: 0, b: 0, c: 0, d: 1}
+		ff := one.lsh(uint(exp - expC)).sub(one)
+		// log.Printf("        ff: %#v", ff)
+		ff = fracC256.and(ff)
 		fracC256 = fracC256.rsh(uint(exp - expC))
+		fracC256.d |= squash64(ff.a) | squash64(ff.b) | squash64(ff.c) | squash64(ff.d)
 	} else {
 		one := uint256{a: 0, b: 0, c: 0, d: 1}
 		ff := one.lsh(uint(expC - exp)).sub(one)
@@ -436,7 +452,7 @@ func FMA(x, y, z Float128) Float128 {
 	ifrac256 = ifrac256.add(ifracC256)
 	sign = uint64(ifrac256.a) & signMask128H
 	frac256 = ifrac256.abs()
-	// log.Printf("+  frac256: %#v", frac256)
+	// log.Printf("=  frac256: %#v", frac256)
 
 	// normalize
 	// log.Println("leading zero:", frac256.leadingZeros())
