@@ -1,8 +1,6 @@
 package float128
 
 import (
-	"log"
-
 	"github.com/shogo82148/int128"
 )
 
@@ -435,25 +433,25 @@ func FMA(x, y, z Float128) Float128 {
 	// calculate a * b
 	exp := expA + expB
 	frac256 := mul128(fracA, fracB)
-	log.Printf(" frac256 = %#v", frac256)
+	// log.Printf(" frac256 = %#v", frac256)
 
 	// add c
 	if expC <= exp {
 		fracC256 = fracC256.rsh(uint(exp - expC))
-		log.Printf("fracC256 = %#v", fracC256)
+		// log.Printf("fracC256 = %#v", fracC256)
 		ifracC256 := fracC256.int256().setSign(signC != 0)
 		ifrac256 := frac256.int256().setSign(sign != 0)
 		ifrac256 = ifrac256.add(ifracC256)
 		sign = uint64(ifrac256.a) & signMask128H
 		frac256 = ifrac256.abs()
-		log.Printf(" frac256 = %#v", frac256)
+		// log.Printf(" frac256 = %#v", frac256)
 	}
 	frac := int128.Uint128{H: frac256.a, L: frac256.b | squash64(frac256.c) | squash64(frac256.d)}
 
 	// normalize
 	shift := int32(frac.Len() - (shift128 + 1 + 2))
 	exp += shift
-	log.Println("shift:", shift)
+	// log.Println("shift:", shift)
 	if frac256.isZero() || exp+shift < -(bias128+shift128) {
 		// underflow
 		return Float128{sign, 0}
@@ -471,7 +469,7 @@ func FMA(x, y, z Float128) Float128 {
 	// shift = int32(frac256.leadingZeros() - 19)
 	// log.Printf(" frac256 = %#v << %d", frac256, shift+4)
 	frac256 = frac256.rsh(uint(2 + shift))
-	log.Printf(" frac256 = %#v", frac256)
+	// log.Printf(" frac256 = %#v", frac256)
 
 	exp += bias128
 	if exp >= mask128 {
@@ -480,7 +478,7 @@ func FMA(x, y, z Float128) Float128 {
 	}
 	_ = signC
 	_ = expC
-	log.Println()
+	// log.Println()
 
 	return Float128{sign | uint64(exp)<<(shift128-64) | (frac256.a & fracMask128H), frac256.b}
 }
