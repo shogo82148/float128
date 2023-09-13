@@ -576,10 +576,24 @@ func TestFMA(t *testing.T) {
 			Float128{0xbffe_0000_0000_0000, 0}, // 0.5
 			Float128{0x3ffe_0000_0000_0000, 0}, // 0.5
 		},
+
+		// the result is subnormal
+		{
+			Float128{0x0001_0000_0000_0000, 0}, // smallest positive normal number
+			Float128{0x3ffe_0000_0000_0000, 0}, // 0.5
+			Float128{0x0000_0000_0000_0000, 1}, // // smallest positive subnormal number
+			Float128{0x0000_8000_0000_0000, 1}, // 2⁻¹⁶³⁸³ + 2⁻¹⁶⁴⁹⁴
+		},
+		{
+			Float128{0x0001_0000_0000_0000, 0}, // smallest positive normal number
+			Float128{0x3ffd_0000_0000_0000, 0}, // 0.25
+			Float128{0x0000_0000_0000_0000, 1}, // // smallest positive subnormal number
+			Float128{0x0000_4000_0000_0000, 1}, // 2⁻¹⁶³⁸³ + 2⁻¹⁶⁴⁹⁴
+		},
 	}
 	for _, tt := range tests {
 		got := FMA(tt.x, tt.y, tt.z)
-		if got != tt.want {
+		if !equals(got, tt.want) {
 			t.Errorf("%s * %s + %s: got %s, want %s", dump(tt.x), dump(tt.y), dump(tt.z), dump(got), dump(tt.want))
 		}
 	}
