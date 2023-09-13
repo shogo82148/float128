@@ -590,6 +590,18 @@ func TestFMA(t *testing.T) {
 			Float128{0x0000_0000_0000_0000, 1}, // // smallest positive subnormal number
 			Float128{0x0000_4000_0000_0000, 1}, // 2⁻¹⁶³⁸³ + 2⁻¹⁶⁴⁹⁴
 		},
+		{
+			Float128{0xbffdfffffffff7ff, 0xffffffffefffffff}, // -0x1.fffffffff7ffffffffffefffffffp-2
+			Float128{0x0000fffffffffffb, 0xffffffffffffffef}, // +0x0.fffffffffffbffffffffffffffefp-16382
+			Float128{0x000000fde9f01372, 0x332c149127a0cf42}, // +0x0.00fde9f01372332c149127a0cf42p-16382
+			Float128{0x80007f02160fea8b, 0xccd3eb6edc5f30b5}, // -0x0.7f02160fea8bccd3eb6edc5f30b5p-16382
+		},
+		{
+			Float128{0x8001fffff807ffff, 0xfffffffffffffffe},
+			Float128{0xbf7eefc46289dd61, 0x3b5141a1d876a1ea},
+			Float128{0x0000000fffffffff, 0xfffffffffff00000},
+			Float128{0x0000000fffffffff, 0xfffffffffff00000},
+		},
 
 		// random tests
 		{
@@ -603,6 +615,12 @@ func TestFMA(t *testing.T) {
 			Float128{0x7ffd000001ffffff, 0xfffffffffffffffe},
 			Float128{0x3fffb272406353e8, 0x27de4059c093af48},
 			Float128{0x7ff5000002000000, 0x00001000011ffffe},
+		},
+		{
+			Float128{0x0002fff7ffffffff, 0xffffffffffffdfff},
+			Float128{0xbffc0001ffffffff, 0xfffffffffff7ffff},
+			Float128{0x403c000000000000, 0x0000000000000000},
+			Float128{0x403c000000000000, 0x0000000000000000},
 		},
 	}
 	for _, tt := range tests {

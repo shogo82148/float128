@@ -416,13 +416,17 @@ func FMA(x, y, z Float128) Float128 {
 	// calculate a * b
 	exp := expA + expB
 	frac256 := mul128(fracA, fracB)
-	// log.Printf(" frac256 = %#v", frac256)
+	// log.Printf("  frac256 = %#v", frac256)
 
 	// add c
 	if expC <= exp {
 		fracC256 = fracC256.rsh(uint(exp - expC))
 	} else {
+		one := uint256{a: 0, b: 0, c: 0, d: 1}
+		ff := one.lsh(uint(expC - exp)).sub(one)
+		ff = frac256.and(ff)
 		frac256 = frac256.rsh(uint(expC - exp))
+		frac256.d |= squash64(ff.a) | squash64(ff.b) | squash64(ff.c) | squash64(ff.d)
 		exp = expC
 	}
 	// log.Printf("  fracC256: %#v", fracC256)
@@ -443,7 +447,12 @@ func FMA(x, y, z Float128) Float128 {
 		// underflow
 		return Float128{sign, 0}
 	} else if expTmp <= -bias128 {
-		shift := uint(128 - 7 - (expTmp + bias128))
+		shift := uint(128 - 7 - (expTmp - shift + bias128))
+		one := uint256{a: 0, b: 0, c: 0, d: 1}
+		ff := one.lsh(shift - 1).sub(one)
+		ff = ff.add(frac256.rsh(shift).and(one)) // round to nearest even
+		frac256 = frac256.add(ff)
+		// log.Printf(" frac256 = %#v >> %d", frac256, shift)
 		frac256 = frac256.rsh(shift)
 		// log.Printf(" frac256 = %#v", frac256)
 
@@ -458,8 +467,8 @@ func FMA(x, y, z Float128) Float128 {
 	exp += shift
 	frac256 = frac256.rsh(uint(128 - 8 + shift))
 
-	expTmp += bias128
-	if expTmp >= mask128 {
+	exp += bias128
+	if exp >= mask128 {
 		// overflow
 		return Float128{sign | inf.h, inf.l}
 	}
@@ -467,5 +476,5 @@ func FMA(x, y, z Float128) Float128 {
 	_ = expC
 	// log.Println()
 
-	return Float128{sign | uint64(expTmp)<<(shift128-64) | (frac256.c & fracMask128H), frac256.d}
+	return Float128{sign | uint64(exp)<<(shift128-64) | (frac256.c & fracMask128H), frac256.d}
 }
