@@ -57,6 +57,12 @@ func (f Float128) Bits() (h, l uint64) {
 	return f.h, f.l
 }
 
+// FromBits returns the floating point number corresponding
+// to the IEEE 754 binary representation of h and l.
+func FromBits(h, l uint64) Float128 {
+	return Float128{h, l}
+}
+
 // FromFloat128 returns the floating point number corresponding
 // to the IEEE 754 binary representation of f.
 func FromFloat64(f float64) Float128 {

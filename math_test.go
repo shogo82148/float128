@@ -116,28 +116,6 @@ func TestMul(t *testing.T) {
 	}
 }
 
-//go:generate sh -c "perl scripts/f128_mul.pl | gofmt > f128_mul_test.go"
-
-func TestMul_TestFloat(t *testing.T) {
-	for _, tt := range f128Mul {
-		tt := tt
-		fa := tt.a
-		fb := tt.b
-		func() {
-			defer func() {
-				err := recover()
-				if err != nil {
-					t.Errorf("%s * %s: want %s, panic %#v", dump(fa), dump(fb), dump(tt.want), err)
-				}
-			}()
-			got := fa.Mul(fb)
-			if got != tt.want {
-				t.Errorf("%s * %s: got %s, want %s", dump(fa), dump(fb), dump(got), dump(tt.want))
-			}
-		}()
-	}
-}
-
 func BenchmarkMul(b *testing.B) {
 	r := newXoshiro256pp()
 	for i := 0; i < b.N; i++ {
@@ -274,28 +252,6 @@ func TestQuo(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("%s / %s: got %s, want %s", dump(tt.a), dump(tt.b), dump(got), dump(tt.want))
 		}
-	}
-}
-
-//go:generate sh -c "perl scripts/f128_div.pl | gofmt > f128_div_test.go"
-
-func TestQuo_TestFloat(t *testing.T) {
-	for _, tt := range f128Div {
-		tt := tt
-		fa := tt.a
-		fb := tt.b
-		func() {
-			defer func() {
-				err := recover()
-				if err != nil {
-					t.Errorf("%s / %s: want %s, panic %#v", dump(fa), dump(fb), dump(tt.want), err)
-				}
-			}()
-			got := fa.Quo(fb)
-			if got != tt.want {
-				t.Errorf("%s / %s: got %s, want %s", dump(fa), dump(fb), dump(got), dump(tt.want))
-			}
-		}()
 	}
 }
 
@@ -485,28 +441,6 @@ func TestAdd(t *testing.T) {
 	}
 }
 
-//go:generate sh -c "perl scripts/f128_add.pl | gofmt > f128_add_test.go"
-
-func TestAdd_TestFloat(t *testing.T) {
-	for _, tt := range f128Add {
-		tt := tt
-		fa := tt.a
-		fb := tt.b
-		func() {
-			defer func() {
-				err := recover()
-				if err != nil {
-					t.Errorf("%s + %s: want %s, panic %#v", dump(fa), dump(fb), dump(tt.want), err)
-				}
-			}()
-			got := fa.Add(fb)
-			if got != tt.want {
-				t.Errorf("%s + %s: got %s, want %s", dump(fa), dump(fb), dump(got), dump(tt.want))
-			}
-		}()
-	}
-}
-
 func BenchmarkAdd(b *testing.B) {
 	r := newXoshiro256pp()
 	for i := 0; i < b.N; i++ {
@@ -582,20 +516,6 @@ func TestComparison(t *testing.T) {
 	}
 }
 
-//go:generate sh -c "perl scripts/f128_eq.pl | gofmt > f128_eq_test.go"
-
-func TestEq_TestFloat(t *testing.T) {
-	for _, tt := range f128Eq {
-		tt := tt
-		fa := tt.a
-		fb := tt.b
-		got := fa.Eq(fb)
-		if got != tt.want {
-			t.Errorf("%s == %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
-		}
-	}
-}
-
 func BenchmarkEq(b *testing.B) {
 	r := newXoshiro256pp()
 	for i := 0; i < b.N; i++ {
@@ -604,39 +524,11 @@ func BenchmarkEq(b *testing.B) {
 	}
 }
 
-//go:generate sh -c "perl scripts/f128_lt.pl | gofmt > f128_lt_test.go"
-
-func TestLt_TestFloat(t *testing.T) {
-	for _, tt := range f128Lt {
-		tt := tt
-		fa := tt.a
-		fb := tt.b
-		got := fa.Lt(fb)
-		if got != tt.want {
-			t.Errorf("%s < %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
-		}
-	}
-}
-
 func BenchmarkLt(b *testing.B) {
 	r := newXoshiro256pp()
 	for i := 0; i < b.N; i++ {
 		a, b := r.Float128Pair()
 		runtime.KeepAlive(a.Lt(b))
-	}
-}
-
-//go:generate sh -c "perl scripts/f128_le.pl | gofmt > f128_le_test.go"
-
-func TestLe_TestFloat(t *testing.T) {
-	for _, tt := range f128Le {
-		tt := tt
-		fa := tt.a
-		fb := tt.b
-		got := fa.Le(fb)
-		if got != tt.want {
-			t.Errorf("%s <= %s: got %t, want %t", dump(fa), dump(fb), got, tt.want)
-		}
 	}
 }
 

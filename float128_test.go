@@ -109,18 +109,6 @@ func TestFromFloat64(t *testing.T) {
 	}
 }
 
-//go:generate sh -c "perl scripts/f64_to_f128.pl | gofmt > f64_to_f128_test.go"
-
-func TestFromFloat64_TestFloat(t *testing.T) {
-	for _, tt := range f64ToF128 {
-		f64 := math.Float64frombits(tt.f64)
-		got := FromFloat64(f64)
-		if got != tt.f128 {
-			t.Errorf("FromFloat64(%x) = {0x%x, 0x%x}, want {0x%x, 0x%x}", tt.f64, got.h, got.l, tt.f128.h, tt.f128.l)
-		}
-	}
-}
-
 func BenchmarkFromFloat64(b *testing.B) {
 	r := newXoshiro256pp()
 	for i := 0; i < b.N; i++ {
@@ -168,18 +156,6 @@ func TestFloat64(t *testing.T) {
 		}
 		if math.Float64bits(got) != math.Float64bits(tt.want) {
 			t.Errorf("{%x, %x}.Float64() = %x, want %x", tt.input.h, tt.input.l, got, tt.want)
-		}
-	}
-}
-
-//go:generate sh -c "perl scripts/f128_to_f64.pl | gofmt > f128_to_f64_test.go"
-
-func TestFloat64_TestFloat(t *testing.T) {
-	for _, tt := range f128ToF64 {
-		f64 := tt.f128.Float64()
-		got := math.Float64bits(f64)
-		if got != tt.f64 {
-			t.Errorf("{0x%x, 0x%x}.Float64() = %x, want %x", tt.f128.h, tt.f128.l, got, tt.f64)
 		}
 	}
 }
