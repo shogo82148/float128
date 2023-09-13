@@ -390,24 +390,7 @@ func (f Float128) Neg() Float128 {
 func FMA(x, y, z Float128) Float128 {
 	// handling NaN
 	if x.IsNaN() || y.IsNaN() || z.IsNaN() {
-		if x.isSignalingNaN() {
-			return Float128{x.h | qNaNBitH, x.l}
-		}
-		if y.isSignalingNaN() {
-			return Float128{y.h | qNaNBitH, y.l}
-		}
-		if z.isSignalingNaN() {
-			return Float128{z.h | qNaNBitH, z.l}
-		}
-		if z.IsNaN() {
-			return Float128{z.h | qNaNBitH, z.l}
-		}
-		if x.IsNaN() {
-			return Float128{x.h | qNaNBitH, x.l}
-		}
-		if y.IsNaN() {
-			return Float128{y.h | qNaNBitH, y.l}
-		}
+		return nan
 	}
 
 	// Inf or zero involved. At most one rounding will occur.
