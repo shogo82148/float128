@@ -423,6 +423,7 @@ func FMA(x, y, z Float128) Float128 {
 		fracC256 = fracC256.rsh(uint(exp - expC))
 	} else {
 		frac256 = frac256.rsh(uint(expC - exp))
+		exp = expC
 	}
 	// log.Printf("  fracC256: %#v", fracC256)
 	// log.Printf("+  frac256: %#v", frac256)
@@ -436,31 +437,29 @@ func FMA(x, y, z Float128) Float128 {
 	// normalize
 	// log.Println("leading zero:", frac256.leadingZeros())
 	shift := int32(23 - frac256.leadingZeros())
-	exp += shift
-	// log.Println("shift:", shift)
-	if frac256.isZero() || exp < -(bias128+shift128) {
+	expTmp := exp + shift
+	// log.Println("exp:", exp)
+	if frac256.isZero() || expTmp < -(bias128+shift128) {
 		// underflow
 		return Float128{sign, 0}
-	} else if exp <= -bias128 {
-		shift := uint(128 - 7 - (exp + bias128))
+	} else if expTmp <= -bias128 {
+		shift := uint(128 - 7 - (expTmp + bias128))
 		frac256 = frac256.rsh(shift)
 		// log.Printf(" frac256 = %#v", frac256)
 
 		return Float128{sign | frac256.c, frac256.d}
 	}
 
-	// one := uint256{a: 0, b: 0, c: 0, d: 1}
-	// ff := uint256{0, 0, 0x7fff_ffff_ffff_ffff, 0xffff_ffff_ffff_ffff}
-	// log.Printf("           %#v", frac256.rsh(128-uint(shift+margin)))
-	// ff = ff.add(frac256.rsh(128 - uint(shift+margin)).and(one)) // round to nearest even
-	// frac256 = frac256.add(ff.rsh(uint(shift + margin)))
-	// shift = int32(frac256.leadingZeros() - 19)
-	// log.Printf(" frac256 = %#v << %d", frac256, shift+4)
-	frac256 = frac256.lsh(uint(8 - shift))
-	// log.Printf(" frac256 = %#v", frac256)
+	one := uint256{a: 0, b: 0, c: 0, d: 1}
+	ff := one.lsh(uint(128-8+shift) - 1).sub(one)
+	ff = ff.add(frac256.rsh(uint(128 - 8 + shift)).and(one)) // round to nearest even
+	frac256 = frac256.add(ff)
+	shift = int32(23 - frac256.leadingZeros())
+	exp += shift
+	frac256 = frac256.rsh(uint(128 - 8 + shift))
 
-	exp += bias128
-	if exp >= mask128 {
+	expTmp += bias128
+	if expTmp >= mask128 {
 		// overflow
 		return Float128{sign | inf.h, inf.l}
 	}
@@ -468,5 +467,5 @@ func FMA(x, y, z Float128) Float128 {
 	_ = expC
 	// log.Println()
 
-	return Float128{sign | uint64(exp)<<(shift128-64) | (frac256.a & fracMask128H), frac256.b}
+	return Float128{sign | uint64(expTmp)<<(shift128-64) | (frac256.c & fracMask128H), frac256.d}
 }

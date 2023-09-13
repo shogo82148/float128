@@ -590,6 +590,20 @@ func TestFMA(t *testing.T) {
 			Float128{0x0000_0000_0000_0000, 1}, // // smallest positive subnormal number
 			Float128{0x0000_4000_0000_0000, 1}, // 2⁻¹⁶³⁸³ + 2⁻¹⁶⁴⁹⁴
 		},
+
+		// random tests
+		{
+			Float128{0x0002010000000000, 0x1fffffffffffffff},
+			Float128{0x3e7b003fffbfffff, 0xffffffffffffffff},
+			Float128{0x4080000000000200, 0x001fffffffffffff},
+			Float128{0x4080000000000200, 0x001fffffffffffff},
+		},
+		{
+			Float128{0x3ff7000000000000, 0x0000100000fffffe},
+			Float128{0x7ffd000001ffffff, 0xfffffffffffffffe},
+			Float128{0x3fffb272406353e8, 0x27de4059c093af48},
+			Float128{0x7ff5000002000000, 0x00001000011ffffe},
+		},
 	}
 	for _, tt := range tests {
 		got := FMA(tt.x, tt.y, tt.z)

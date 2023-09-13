@@ -273,7 +273,7 @@ func f128_mulAdd() {
 		}
 
 		got := float128.FMA(a, b, c)
-		if got.IsNaN() && c.IsNaN() {
+		if got.IsNaN() && d.IsNaN() {
 			continue
 		}
 		if got != d {
