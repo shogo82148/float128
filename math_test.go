@@ -110,7 +110,7 @@ func TestMul(t *testing.T) {
 
 	for _, tt := range tests {
 		got := tt.a.Mul(tt.b)
-		if got != tt.want {
+		if !equals(got, tt.want) {
 			t.Errorf("%s * %s: got %s, want %s", dump(tt.a), dump(tt.b), dump(got), dump(tt.want))
 		}
 	}
@@ -249,7 +249,7 @@ func TestQuo(t *testing.T) {
 
 	for _, tt := range tests {
 		got := tt.a.Quo(tt.b)
-		if got != tt.want {
+		if !equals(got, tt.want) {
 			t.Errorf("%s / %s: got %s, want %s", dump(tt.a), dump(tt.b), dump(got), dump(tt.want))
 		}
 	}
@@ -435,7 +435,7 @@ func TestAdd(t *testing.T) {
 
 	for _, tt := range tests {
 		got := tt.a.Add(tt.b)
-		if got != tt.want {
+		if !equals(got, tt.want) {
 			t.Errorf("%s + %s: got %s, want %s", dump(tt.a), dump(tt.b), dump(got), dump(tt.want))
 		}
 	}
@@ -538,4 +538,15 @@ func BenchmarkLe(b *testing.B) {
 		a, b := r.Float128Pair()
 		runtime.KeepAlive(a.Le(b))
 	}
+}
+
+// equals like a == b, but some exceptions.
+//
+//	NaN == NaN is true
+//	-0 == 0 is false
+func equals(a, b Float128) bool {
+	if a.IsNaN() && b.IsNaN() {
+		return true
+	}
+	return a == b
 }

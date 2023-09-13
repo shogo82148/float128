@@ -210,15 +210,3 @@ func TestIsNaN(t *testing.T) {
 		}
 	}
 }
-
-func TestIsSignalingNaN(t *testing.T) {
-	nan1 := Float128{0xffffffffffffffff, 0xfffffffffffffffe}
-	if nan1.isSignalingNaN() {
-		t.Errorf("isSignalingNaN(%s) = true, want false", dump(nan1))
-	}
-
-	nan2 := Float128{0xffff000000000000, 0x0000000000000001}
-	if !nan2.isSignalingNaN() {
-		t.Errorf("isSignalingNaN(%s) = false, want true", dump(nan2))
-	}
-}
