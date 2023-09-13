@@ -74,10 +74,7 @@ func FromFloat64(f float64) Float128 {
 	if exp == mask64 {
 		if frac != 0 {
 			// f is NaN
-			return Float128{
-				sign | (mask128 << (shift128 - 64)) | (frac >> (64 - shift128 + shift64)) | qNaNBitH,
-				frac << (shift128 - shift64),
-			}
+			return nan
 		} else {
 			// f is ±Inf
 			return Float128{

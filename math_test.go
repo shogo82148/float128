@@ -539,14 +539,3 @@ func BenchmarkLe(b *testing.B) {
 		runtime.KeepAlive(a.Le(b))
 	}
 }
-
-// equals like a == b, but some exceptions.
-//
-//	NaN == NaN is true
-//	-0 == 0 is false
-func equals(a, b Float128) bool {
-	if a.IsNaN() && b.IsNaN() {
-		return true
-	}
-	return a == b
-}
