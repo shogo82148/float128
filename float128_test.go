@@ -103,7 +103,7 @@ func TestFromFloat64(t *testing.T) {
 
 	for _, tt := range tests {
 		got := FromFloat64(tt.input)
-		if got != tt.want {
+		if !equals(got, tt.want) {
 			t.Errorf("FromFloat64(%x) = {0x%x, 0x%x}, want {0x%x, 0x%x}", tt.input, got.h, got.l, tt.want.h, tt.want.l)
 		}
 	}
@@ -211,14 +211,13 @@ func TestIsNaN(t *testing.T) {
 	}
 }
 
-func TestIsSignalingNaN(t *testing.T) {
-	nan1 := Float128{0xffffffffffffffff, 0xfffffffffffffffe}
-	if nan1.isSignalingNaN() {
-		t.Errorf("isSignalingNaN(%s) = true, want false", dump(nan1))
+// equals like a == b, but some exceptions.
+//
+//	NaN == NaN is true
+//	-0 == 0 is false
+func equals(a, b Float128) bool {
+	if a.IsNaN() && b.IsNaN() {
+		return true
 	}
-
-	nan2 := Float128{0xffff000000000000, 0x0000000000000001}
-	if !nan2.isSignalingNaN() {
-		t.Errorf("isSignalingNaN(%s) = false, want true", dump(nan2))
-	}
+	return a == b
 }

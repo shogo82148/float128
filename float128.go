@@ -74,10 +74,7 @@ func FromFloat64(f float64) Float128 {
 	if exp == mask64 {
 		if frac != 0 {
 			// f is NaN
-			return Float128{
-				sign | (mask128 << (shift128 - 64)) | (frac >> (64 - shift128 + shift64)) | qNaNBitH,
-				frac << (shift128 - shift64),
-			}
+			return nan
 		} else {
 			// f is ±Inf
 			return Float128{
@@ -197,25 +194,8 @@ func (f Float128) IsNaN() bool {
 	return true
 }
 
-func (f Float128) isSignalingNaN() bool {
-	exp := (f.h >> (shift128 - 64)) & mask128
-	if exp != mask128 {
-		return false
-	}
-	if (f.h&fracMask128H | f.l) == 0 {
-		return false
-	}
-	return f.h&qNaNBitH == 0
-}
-
 // a or b must be NaN.
 func propagateNaN(a, b Float128) Float128 {
-	if a.isSignalingNaN() {
-		return Float128{a.h | qNaNBitH, a.l}
-	}
-	if b.isSignalingNaN() {
-		return Float128{b.h | qNaNBitH, b.l}
-	}
 	if a.IsNaN() {
 		return a
 	}
