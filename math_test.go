@@ -668,3 +668,12 @@ func TestFMA(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkFMA(b *testing.B) {
+	r := newXoshiro256pp()
+	for i := 0; i < b.N; i++ {
+		a, b := r.Float128Pair()
+		c, _ := r.Float128Pair()
+		runtime.KeepAlive(FMA(a, b, c))
+	}
+}
