@@ -15,7 +15,7 @@ import (
 
 func main() {
 	go func() {
-		time.Sleep(355 * time.Minute)
+		time.Sleep(300 * time.Minute)
 		fmt.Println("timeout")
 		os.Exit(0)
 	}()
