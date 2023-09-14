@@ -30,6 +30,8 @@ func main() {
 		f128_le()
 	case "f128_lt":
 		f128_lt()
+	case "f128_mulAdd":
+		f128_mulAdd()
 	}
 }
 
@@ -258,6 +260,33 @@ func f128_lt() {
 	}
 }
 
+func f128_mulAdd() {
+	var failed int64
+	s := bufio.NewScanner(os.Stdin)
+	for s.Scan() {
+		line := s.Text()
+		line = strings.TrimSpace(line)
+
+		a, b, c, d, err := parseFloat128x4(line)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		got := float128.FMA(a, b, c)
+		if got.IsNaN() && d.IsNaN() {
+			continue
+		}
+		if got != d {
+			fmt.Printf("%s %s %s %s %s\n", dump(a), dump(b), dump(c), dump(d), dump(got))
+			failed++
+		}
+	}
+	if failed > 0 {
+		fmt.Printf("%d tests failed\n", failed)
+		os.Exit(1)
+	}
+}
+
 func parseFloat128(s string) (float128.Float128, error) {
 	if len(s) != 32 {
 		return float128.Float128{}, fmt.Errorf("invalid length: %d", len(s))
@@ -288,6 +317,31 @@ func parseFloat128x3(s string) (a, b, c float128.Float128, err error) {
 		return
 	}
 	c, err = parseFloat128(sc)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func parseFloat128x4(s string) (a, b, c, d float128.Float128, err error) {
+	sa, s, _ := strings.Cut(s, " ")
+	sb, s, _ := strings.Cut(s, " ")
+	sc, s, _ := strings.Cut(s, " ")
+	sd, s, _ := strings.Cut(s, " ")
+	_ = s
+	a, err = parseFloat128(sa)
+	if err != nil {
+		return
+	}
+	b, err = parseFloat128(sb)
+	if err != nil {
+		return
+	}
+	c, err = parseFloat128(sc)
+	if err != nil {
+		return
+	}
+	d, err = parseFloat128(sd)
 	if err != nil {
 		return
 	}

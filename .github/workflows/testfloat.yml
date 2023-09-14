@@ -11,6 +11,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         test:
           - f128_to_f64
@@ -21,6 +22,7 @@ jobs:
           - f128_eq
           - f128_lt
           - f128_le
+          - f128_mulAdd
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4

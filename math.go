@@ -384,3 +384,113 @@ func (f Float128) Abs() Float128 {
 func (f Float128) Neg() Float128 {
 	return Float128{f.h ^ signMask128H, f.l}
 }
+
+// FMA returns x * y + z, computed with only one rounding.
+// (That is, FMA returns the fused multiply-add of x, y, and z.)
+func FMA(x, y, z Float128) Float128 {
+	// handling NaN
+	if x.IsNaN() || y.IsNaN() || z.IsNaN() {
+		return nan
+	}
+
+	// Inf involved. At most one rounding will occur.
+	if x.IsInf(0) || y.IsInf(0) {
+		return x.Mul(y).Add(z)
+	}
+	// Handle non-finite z separately. Evaluating x*y+z where
+	// x and y are finite, but z is infinite, should always result in z.
+	if z.IsInf(0) {
+		return z
+	}
+
+	signA, expA, fracA := x.split()
+	signB, expB, fracB := y.split()
+	signC, expC, fracC := z.split()
+	sign := signA ^ signB
+
+	// add guard and round bits
+	fracA = fracA.Lsh(4)
+	fracB = fracB.Lsh(4)
+	fracC256 := uint256{a: fracC.H, b: fracC.L, c: 0, d: 0}.rsh(8)
+	// log.Printf(" fracC256 = %#v", fracC256)
+
+	// calculate a * b
+	exp := expA + expB
+	frac256 := mul128(fracA, fracB)
+	// log.Printf("  frac256 = %#v", frac256)
+	if frac256.isZero() {
+		// +0 + ±0 = +0
+		// -0 + ±0 = ±0
+		if z.isZero() {
+			return Float128{sign & z.h, 0}
+		}
+
+		// ±0 + z = z
+		return z
+	}
+
+	// add c
+	if expC <= exp {
+		one := uint256{a: 0, b: 0, c: 0, d: 1}
+		ff := one.lsh(uint(exp - expC)).sub(one)
+		// log.Printf("        ff: %#v", ff)
+		ff = fracC256.and(ff)
+		fracC256 = fracC256.rsh(uint(exp - expC))
+		fracC256.d |= squash64(ff.a) | squash64(ff.b) | squash64(ff.c) | squash64(ff.d)
+	} else {
+		one := uint256{a: 0, b: 0, c: 0, d: 1}
+		ff := one.lsh(uint(expC - exp)).sub(one)
+		ff = frac256.and(ff)
+		frac256 = frac256.rsh(uint(expC - exp))
+		frac256.d |= squash64(ff.a) | squash64(ff.b) | squash64(ff.c) | squash64(ff.d)
+		exp = expC
+	}
+	// log.Printf("  fracC256: %#v", fracC256)
+	// log.Printf("+  frac256: %#v", frac256)
+	ifracC256 := fracC256.int256().setSign(signC != 0)
+	ifrac256 := frac256.int256().setSign(sign != 0)
+	ifrac256 = ifrac256.add(ifracC256)
+	sign = uint64(ifrac256.a) & signMask128H
+	frac256 = ifrac256.abs()
+	// log.Printf("=  frac256: %#v", frac256)
+
+	// normalize
+	// log.Println("leading zero:", frac256.leadingZeros())
+	shift := int32(23 - frac256.leadingZeros())
+	expTmp := exp + shift
+	// log.Println("exp:", exp)
+	if frac256.isZero() || expTmp < -(bias128+shift128) {
+		// underflow
+		return Float128{sign, 0}
+	} else if expTmp <= -bias128 {
+		shift := uint(128 - 7 - (expTmp - shift + bias128))
+		one := uint256{a: 0, b: 0, c: 0, d: 1}
+		ff := one.lsh(shift - 1).sub(one)
+		ff = ff.add(frac256.rsh(shift).and(one)) // round to nearest even
+		frac256 = frac256.add(ff)
+		// log.Printf(" frac256 = %#v >> %d", frac256, shift)
+		frac256 = frac256.rsh(shift)
+		// log.Printf(" frac256 = %#v", frac256)
+
+		return Float128{sign | frac256.c, frac256.d}
+	}
+
+	one := uint256{a: 0, b: 0, c: 0, d: 1}
+	ff := one.lsh(uint(128-8+shift) - 1).sub(one)
+	ff = ff.add(frac256.rsh(uint(128 - 8 + shift)).and(one)) // round to nearest even
+	frac256 = frac256.add(ff)
+	shift = int32(23 - frac256.leadingZeros())
+	exp += shift
+	frac256 = frac256.rsh(uint(128 - 8 + shift))
+
+	exp += bias128
+	if exp >= mask128 {
+		// overflow
+		return Float128{sign | inf.h, inf.l}
+	}
+	_ = signC
+	_ = expC
+	// log.Println()
+
+	return Float128{sign | uint64(exp)<<(shift128-64) | (frac256.c & fracMask128H), frac256.d}
+}

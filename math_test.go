@@ -539,3 +539,132 @@ func BenchmarkLe(b *testing.B) {
 		runtime.KeepAlive(a.Le(b))
 	}
 }
+
+func TestFMA(t *testing.T) {
+	tests := []struct {
+		x, y, z Float128
+		want    Float128
+	}{
+		// NaN
+		{
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+			Float128{0x7fff_8000_0000_0000, 0x01}, // NaN
+		},
+
+		// 1 * 1 + 1 = 2
+		{
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x4000_0000_0000_0000, 0}, // 2
+		},
+
+		// 1 * 1 + 0.5 = 1.5
+		{
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x3ffe_0000_0000_0000, 0}, // 0.5
+			Float128{0x3fff_8000_0000_0000, 0}, // 1.5
+		},
+
+		// 1 * 1 + (-0.5) = 0.5
+		{
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0x3fff_0000_0000_0000, 0}, // 1
+			Float128{0xbffe_0000_0000_0000, 0}, // 0.5
+			Float128{0x3ffe_0000_0000_0000, 0}, // 0.5
+		},
+
+		// the result is subnormal
+		{
+			Float128{0x0001_0000_0000_0000, 0}, // smallest positive normal number
+			Float128{0x3ffe_0000_0000_0000, 0}, // 0.5
+			Float128{0x0000_0000_0000_0000, 1}, // // smallest positive subnormal number
+			Float128{0x0000_8000_0000_0000, 1}, // 2⁻¹⁶³⁸³ + 2⁻¹⁶⁴⁹⁴
+		},
+		{
+			Float128{0x0001_0000_0000_0000, 0}, // smallest positive normal number
+			Float128{0x3ffd_0000_0000_0000, 0}, // 0.25
+			Float128{0x0000_0000_0000_0000, 1}, // // smallest positive subnormal number
+			Float128{0x0000_4000_0000_0000, 1}, // 2⁻¹⁶³⁸³ + 2⁻¹⁶⁴⁹⁴
+		},
+		{
+			Float128{0xbffdfffffffff7ff, 0xffffffffefffffff}, // -0x1.fffffffff7ffffffffffefffffffp-2
+			Float128{0x0000fffffffffffb, 0xffffffffffffffef}, // +0x0.fffffffffffbffffffffffffffefp-16382
+			Float128{0x000000fde9f01372, 0x332c149127a0cf42}, // +0x0.00fde9f01372332c149127a0cf42p-16382
+			Float128{0x80007f02160fea8b, 0xccd3eb6edc5f30b5}, // -0x0.7f02160fea8bccd3eb6edc5f30b5p-16382
+		},
+		{
+			Float128{0x8001fffff807ffff, 0xfffffffffffffffe},
+			Float128{0xbf7eefc46289dd61, 0x3b5141a1d876a1ea},
+			Float128{0x0000000fffffffff, 0xfffffffffff00000},
+			Float128{0x0000000fffffffff, 0xfffffffffff00000},
+		},
+
+		// has zeros
+		{
+			Float128{0x3b2dffffffffffff, 0xffffffffffcffffe},
+			Float128{0x8000008000000000, 0x000000003ffffffe},
+			Float128{0x0000000000000000, 0x0000000000000000}, // 0
+			Float128{0x8000000000000000, 0x0000000000000000}, // -0
+		},
+		{
+			Float128{0x0000000000000000, 0x0000000000000000}, // +0
+			Float128{0x0000000000000000, 0x0000000000000000}, // +0
+			Float128{0x8000000000000000, 0x0000000000000000}, // -0
+			Float128{0x0000000000000000, 0x0000000000000000}, // +0
+		},
+		{
+			Float128{0x0000000000000000, 0x0000000000000000}, // +0
+			Float128{0xc000000000000000, 0x0000000000000000}, // -2
+			Float128{0x8000000000000000, 0x0000000000000000}, // -0
+			Float128{0x8000000000000000, 0x0000000000000000}, // -0
+		},
+
+		// random tests
+		{
+			Float128{0x0002010000000000, 0x1fffffffffffffff},
+			Float128{0x3e7b003fffbfffff, 0xffffffffffffffff},
+			Float128{0x4080000000000200, 0x001fffffffffffff},
+			Float128{0x4080000000000200, 0x001fffffffffffff},
+		},
+		{
+			Float128{0x3ff7000000000000, 0x0000100000fffffe},
+			Float128{0x7ffd000001ffffff, 0xfffffffffffffffe},
+			Float128{0x3fffb272406353e8, 0x27de4059c093af48},
+			Float128{0x7ff5000002000000, 0x00001000011ffffe},
+		},
+		{
+			Float128{0x0002fff7ffffffff, 0xffffffffffffdfff},
+			Float128{0xbffc0001ffffffff, 0xfffffffffff7ffff},
+			Float128{0x403c000000000000, 0x0000000000000000},
+			Float128{0x403c000000000000, 0x0000000000000000},
+		},
+		{
+			Float128{0x407e000000000400, 0x0000000080000000},
+			Float128{0xc0b8fffffff70000, 0x0000000000000000},
+			Float128{0x4003000000000000, 0x00000000ffff0000},
+			Float128{0xc137fffffff707ff, 0xffffdc00fffffffb},
+		},
+		{
+			Float128{0x3ff2000000000000, 0x3fc0000000000000},
+			Float128{0xc0dc000000ffffff, 0xfe00000000000000},
+			Float128{0xc0b200000000f000, 0x0000000000000000},
+			Float128{0xc0cf000001080000, 0x3dc7803fbfffff80},
+		},
+		{
+			Float128{0xbf82000000000000, 0x0000000fc0000000},
+			Float128{0xc000000000000000, 0x0000000000000000},
+			Float128{0x3f812c9ce2963120, 0x9ef0dd1bd2c968f2},
+			Float128{0x3f834b2738a58c48, 0x27bc3756b4b25a3c},
+		},
+	}
+	for _, tt := range tests {
+		got := FMA(tt.x, tt.y, tt.z)
+		if !equals(got, tt.want) {
+			t.Errorf("%s * %s + %s: got %s, want %s", dump(tt.x), dump(tt.y), dump(tt.z), dump(got), dump(tt.want))
+		}
+	}
+}
