@@ -475,14 +475,20 @@ func FMA(x, y, z Float128) Float128 {
 		return Float128{sign | frac256.c, frac256.d}
 	}
 
-	one := uint256{a: 0, b: 0, c: 0, d: 1}
-	ff := one.lsh(uint(128-8+shift) - 1).sub(one)
-	ff = ff.add(frac256.rsh(uint(128 - 8 + shift)).and(one)) // round to nearest even
-	frac256 = frac256.add(ff)
-	shift = int32(23 - frac256.leadingZeros())
-	exp += shift
-	frac256 = frac256.rsh(uint(128 - 8 + shift))
-
+	if 128-8+shift >= 0 {
+		one := uint256{a: 0, b: 0, c: 0, d: 1}
+		ff := one.lsh(uint(128-8+shift) - 1).sub(one)
+		ff = ff.add(frac256.rsh(uint(128 - 8 + shift)).and(one)) // round to nearest even
+		frac256 = frac256.add(ff)
+		shift = int32(23 - frac256.leadingZeros())
+		exp += shift
+		frac256 = frac256.rsh(uint(128 - 8 + shift))
+		// log.Printf(" frac256 = %#v", frac256)
+	} else {
+		shift = int32(23 - frac256.leadingZeros())
+		exp += shift
+		frac256 = frac256.lsh(uint(-128 + 8 - shift))
+	}
 	exp += bias128
 	if exp >= mask128 {
 		// overflow

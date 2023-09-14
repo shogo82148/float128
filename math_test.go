@@ -660,6 +660,12 @@ func TestFMA(t *testing.T) {
 			Float128{0x3f812c9ce2963120, 0x9ef0dd1bd2c968f2},
 			Float128{0x3f834b2738a58c48, 0x27bc3756b4b25a3c},
 		},
+		{
+			Float128{0xbffbffffffefffff, 0xffffffffffffffff},
+			Float128{0x4001ffffffffffff, 0xfffffffffffffc00},
+			Float128{0x3ffeffffffefffff, 0xfffffffffffffbff},
+			Float128{0xbf7b000000000000, 0x0000000010000000},
+		},
 	}
 	for _, tt := range tests {
 		got := FMA(tt.x, tt.y, tt.z)
