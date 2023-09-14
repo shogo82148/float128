@@ -94,9 +94,13 @@ func f64_to_f128() {
 
 		// test converting
 		h0, l0 := f128.Bits()
-		h1, l1 := float128.FromFloat64(f64).Bits()
+		got := float128.FromFloat64(f64)
+		h1, l1 := got.Bits()
+		if got.IsNaN() && f128.IsNaN() {
+			continue
+		}
 		if h0 != h1 || l0 != l1 {
-			fmt.Printf("%s %s %08x%08x\n", s64, s128, h1, l1)
+			fmt.Printf("%s %s %016x%016x\n", s64, s128, h1, l1)
 			failed++
 		}
 		_ = line
