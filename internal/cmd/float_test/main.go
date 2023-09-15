@@ -8,11 +8,18 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/shogo82148/float128"
 )
 
 func main() {
+	go func() {
+		time.Sleep(300 * time.Minute)
+		fmt.Println("timeout")
+		os.Exit(0)
+	}()
+
 	switch os.Args[1] {
 	case "f128_to_f64":
 		f128_to_f64()
