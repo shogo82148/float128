@@ -10,6 +10,9 @@ jobs:
       matrix:
         go:
           - "1.21"
+        arch:
+          - amd64
+          - "386"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -21,6 +24,8 @@ jobs:
           else
             go test -coverprofile="coverage.txt" -timeout 10m -short -v ./...
           fi
+        env:
+          GOARCH: ${{ matrix.arch }}
       - name: upload coverage
         uses: codecov/codecov-action@v3
         with:
