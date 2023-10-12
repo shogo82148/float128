@@ -21,6 +21,7 @@ jobs:
           - f128_lt
           - f128_le
           - f128_mulAdd
+          - f128_sqrt
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
