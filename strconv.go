@@ -86,7 +86,7 @@ func (x Float128) appendHex(buf []byte, fmt byte, prec int) []byte {
 				buf = append(buf, '0')
 			}
 		}
-		buf = append(buf, fmt-('x'-'p'), '+', '0', '0')
+		buf = append(buf, 'P'|(fmt&0x20), '+', '0', '0')
 		return buf
 	}
 
@@ -134,7 +134,7 @@ func (x Float128) appendHex(buf []byte, fmt byte, prec int) []byte {
 		}
 	}
 
-	buf = append(buf, fmt-('x'-'p'))
+	buf = append(buf, 'P'|(fmt&0x20))
 	if exp >= 0 {
 		buf = append(buf, '+')
 	} else {

@@ -24,6 +24,9 @@ func TestText(t *testing.T) {
 		{FromFloat64(1).Quo(FromFloat64(10)), 'x', 28, "0x1.999999999999999999999999999ap-04"},
 		{FromFloat64(1).Quo(FromFloat64(10)), 'x', 30, "0x1.999999999999999999999999999a00p-04"},
 		{Float128{0, 1}, 'x', 1, "0x1.0p-16494"},
+
+		{FromFloat64(0), 'X', -1, "0X0P+00"},
+		{FromFloat64(1), 'X', -1, "0X1P+00"},
 	}
 
 	for _, tt := range tests {
